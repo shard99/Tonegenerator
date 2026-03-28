@@ -1,0 +1,48 @@
+# Built artifacts
+/build
+/*/build
+/out
+
+# Gradle
+.gradle
+/local.properties
+
+# Android Studio / IntelliJ IDEA
+*.iml
+.idea
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Captures and logs
+/captures
+*.log
+
+# Native build
+.externalNativeBuild
+.cxx
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
+CMakeLists.txt.user
+Makefile
+install_manifest.txt
+TargetCheck.cmake
+
+# Signing files
+*.jks
+*.keystore
+*.pk8
+*.pem
+
+# Google Services (usually excluded for security)
+google-services.json
+
+# Lint
+lint/reports
+lint/result.xml
+
+# Bundle tool
+*.apks
+*.aab
