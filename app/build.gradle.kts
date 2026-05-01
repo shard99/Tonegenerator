@@ -5,14 +5,14 @@ plugins {
 
 android {
 	namespace = "dev.shard9.tonegenerator"
-	compileSdk = 35
+	compileSdk = 37
 
 	defaultConfig {
 		applicationId = "dev.shard9.tonegenerator"
 		minSdk = 26
-		targetSdk = 35
-		versionCode = 2
-		versionName = "1.0"
+		targetSdk = 36
+		versionCode = 3
+		versionName = "1.0.1"
 
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}
@@ -27,8 +27,8 @@ android {
 		}
 	}
 	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_11
-		targetCompatibility = JavaVersion.VERSION_11
+		sourceCompatibility = JavaVersion.VERSION_21
+		targetCompatibility = JavaVersion.VERSION_21
 	}
 	buildFeatures {
 		compose = true

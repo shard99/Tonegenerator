@@ -30,7 +30,7 @@ nodes, and testing bass performance.
 - **Language**: Kotlin
 - **UI Framework**: Jetpack Compose (Material 3)
 - **Concurrency**: Non-blocking, low-latency audio processing.
-- **Target SDK**: 35 (Android 15)
+- **Target SDK**: 36 (Android 16)
 
 ## Installation
 
