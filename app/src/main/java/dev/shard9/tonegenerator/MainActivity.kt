@@ -10,10 +10,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,20 +26,59 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.shard9.tonegenerator.ui.theme.ToneGeneratorTheme
 import kotlinx.coroutines.*
+import java.util.Locale
 import kotlin.math.*
+
+class AppViewModel : ViewModel() {
+    var slotCount by mutableIntStateOf(3)
+    var slotNames by mutableStateOf(List(6) { "Slot ${it + 1}" })
+    var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
+    var history = mutableStateListOf<String>()
+
+    fun saveMeasurement(slotIndex: Int, value: Double) {
+        currentSessionMeasurements[slotIndex] = value
+    }
+
+    fun finishSession(frequency: Double, clipboardManager: androidx.compose.ui.platform.ClipboardManager) {
+        if (currentSessionMeasurements.isEmpty()) return
+
+        val result = StringBuilder("${frequency.roundToInt()}")
+        for (i in 0 until slotCount) {
+            currentSessionMeasurements[i]?.let { value ->
+                val formattedValue = String.format(Locale.US, "%.1f", value)
+                result.append(";${slotNames[i]};$formattedValue")
+            }
+        }
+
+        val resultString = result.toString()
+        history.add(0, resultString)
+        if (history.size > 3) {
+            history.removeAt(3)
+        }
+
+        clipboardManager.setText(AnnotatedString(resultString))
+        currentSessionMeasurements.clear()
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private var toneGenerator: ToneGenerator? = null
@@ -45,8 +89,9 @@ class MainActivity : ComponentActivity() {
         toneGenerator = ToneGenerator()
         setContent {
             ToneGeneratorTheme {
+                val viewModel: AppViewModel = viewModel()
                 toneGenerator?.let { generator ->
-                    AppNavigation(toneGenerator = generator)
+                    AppNavigation(toneGenerator = generator, viewModel = viewModel)
                 }
             }
         }
@@ -294,38 +339,40 @@ class ToneGenerator {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppNavigation(toneGenerator: ToneGenerator) {
+fun AppNavigation(toneGenerator: ToneGenerator, viewModel: AppViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val drawerItems = listOf(
+        DrawerItem("Generator", "generator", Icons.Default.Menu),
+        DrawerItem("Results", "results", Icons.Default.History),
+        DrawerItem("Settings", "settings", Icons.Default.Settings)
+    )
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
                 Spacer(modifier = Modifier.height(12.dp))
-                NavigationDrawerItem(
-                    label = { Text("Tone Generator") },
-                    selected = currentRoute == "generator",
-                    onClick = {
-                        navController.navigate("generator") {
-                            popUpTo("generator") { inclusive = true }
-                        }
-                        scope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-                NavigationDrawerItem(
-                    label = { Text("Settings") },
-                    selected = currentRoute == "settings",
-                    onClick = {
-                        navController.navigate("settings")
-                        scope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
+                drawerItems.forEach { item ->
+                    NavigationDrawerItem(
+                        icon = { Icon(item.icon, contentDescription = null) },
+                        label = { Text(item.label) },
+                        selected = currentRoute == item.route,
+                        onClick = {
+                            navController.navigate(item.route) {
+                                if (item.route == "generator") {
+                                    popUpTo("generator") { inclusive = true }
+                                }
+                            }
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                    )
+                }
             }
         }
     ) {
@@ -347,34 +394,123 @@ fun AppNavigation(toneGenerator: ToneGenerator) {
                 modifier = Modifier.padding(padding)
             ) {
                 composable("generator") {
-                    ToneGeneratorScreen(toneGenerator = toneGenerator)
+                    ToneGeneratorScreen(toneGenerator = toneGenerator, viewModel = viewModel)
+                }
+                composable("results") {
+                    ResultsScreen(viewModel = viewModel)
                 }
                 composable("settings") {
-                    SettingsScreen()
+                    SettingsScreen(viewModel = viewModel)
                 }
             }
         }
     }
 }
 
+data class DrawerItem(val label: String, val route: String, val icon: ImageVector)
+
 @Composable
-fun SettingsScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("some settings...", fontSize = 20.sp, color = Color.Gray)
+fun ResultsScreen(viewModel: AppViewModel) {
+    val clipboardManager = LocalClipboardManager.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Results History", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (viewModel.history.isEmpty()) {
+            Text("No results yet", color = Color.Gray)
+        } else {
+            viewModel.history.forEach { line ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        text = line,
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Start
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Button(
+                onClick = {
+                    val allText = viewModel.history.joinToString("\n")
+                    clipboardManager.setText(AnnotatedString(allText))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Copy All to Clipboard")
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen(viewModel: AppViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .padding(bottom = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text("Number of Slots: ${viewModel.slotCount}")
+        Slider(
+            value = viewModel.slotCount.toFloat(),
+            onValueChange = { viewModel.slotCount = it.toInt() },
+            valueRange = 1f..6f,
+            steps = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Slot Names:", fontWeight = FontWeight.SemiBold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            for (i in 0 until viewModel.slotCount) {
+                OutlinedTextField(
+                    value = viewModel.slotNames[i],
+                    onValueChange = { newName ->
+                        val newList = viewModel.slotNames.toMutableList()
+                        newList[i] = newName
+                        viewModel.slotNames = newList
+                    },
+                    label = { Text("Slot ${i + 1} Name") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                )
+            }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modifier) {
+fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modifier: Modifier = Modifier) {
     var isPlaying by remember { mutableStateOf(false) }
     var frequency by remember { mutableFloatStateOf(100f) }
     var overtoneCount by remember { mutableFloatStateOf(0f) }
     var channelIndex by remember { mutableIntStateOf(1) } // Default: Both
+    var showSlotPicker by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
+    val clipboardManager = LocalClipboardManager.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -383,9 +519,31 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
             toneGenerator.start(scope, context)
             isPlaying = true
         } else {
-            // Start without recording if denied, or show a message.
             toneGenerator.start(scope, context)
             isPlaying = true
+        }
+    }
+
+    if (showSlotPicker) {
+        ModalBottomSheet(onDismissRequest = { showSlotPicker = false }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .padding(bottom = 32.dp)
+            ) {
+                Text("Select Slot to Store Value", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(16.dp))
+                for (i in 0 until viewModel.slotCount) {
+                    ListItem(
+                        headlineContent = { Text(viewModel.slotNames[i]) },
+                        modifier = Modifier.clickable {
+                            viewModel.saveMeasurement(i, toneGenerator.measuredLevel * 10.0)
+                            showSlotPicker = false
+                        }
+                    )
+                }
+            }
         }
     }
 
@@ -433,7 +591,7 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
             // Measured Level Indicator
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.width(240.dp).padding(horizontal = 16.dp)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
             ) {
                 Text("Mic Level:", fontSize = 12.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -443,6 +601,26 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
                     color = Color.Blue,
                     trackColor = Color.LightGray,
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                val measuredValue = toneGenerator.measuredLevel * 10.0
+                Text(
+                    text = String.format(Locale.US, "%.1f", measuredValue),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.width(30.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(
+                    onClick = { showSlotPicker = true },
+                    modifier = Modifier.size(32.dp),
+                    enabled = isPlaying
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = "Save to slot",
+                        tint = if (isPlaying) Color.Blue else Color.LightGray
+                    )
+                }
             }
         }
 
@@ -485,6 +663,7 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
             onClick = {
                 if (isPlaying) {
                     toneGenerator.stop()
+                    viewModel.finishSession(frequency.toDouble(), clipboardManager)
                     overtoneCount = 0f
                     toneGenerator.overtones = 0
                     isPlaying = false
