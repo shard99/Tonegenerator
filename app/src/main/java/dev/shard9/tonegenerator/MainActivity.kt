@@ -1,16 +1,19 @@
 package dev.shard9.tonegenerator
 
 import android.content.Context
-import android.media.AudioFormat
-import android.media.AudioManager
-import android.media.AudioTrack
+import android.content.pm.PackageManager
+import android.media.*
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,23 +21,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.shard9.tonegenerator.ui.theme.ToneGeneratorTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlin.math.*
 
 class MainActivity : ComponentActivity() {
@@ -62,6 +61,7 @@ class MainActivity : ComponentActivity() {
 class ToneGenerator {
     private val sampleRate = 44100
     private var audioTrack: AudioTrack? = null
+    private var audioRecord: AudioRecord? = null
 
     @Volatile
     private var isPlaying = false
@@ -73,8 +73,11 @@ class ToneGenerator {
     var overtones = 0
     var channelSelection = 1 // 0: Left, 1: Both, 2: Right
     private var job: Job? = null
+    private var recordJob: Job? = null
 
-    fun start(scope: kotlinx.coroutines.CoroutineScope) {
+    var measuredLevel by mutableDoubleStateOf(0.0)
+
+    fun start(scope: CoroutineScope, context: Context) {
         // If we are already playing and not trying to stop, do nothing.
         if (isPlaying && !isStopping) return
 
@@ -88,6 +91,17 @@ class ToneGenerator {
         isPlaying = true
         isStopping = false
 
+        startPlayback(scope)
+        if (ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO,
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startRecording(scope)
+        }
+    }
+
+    private fun startPlayback(scope: CoroutineScope) {
         val bufferSize = AudioTrack.getMinBufferSize(
             sampleRate,
             AudioFormat.CHANNEL_OUT_STEREO,
@@ -194,6 +208,68 @@ class ToneGenerator {
         }
     }
 
+    private fun startRecording(scope: CoroutineScope) {
+        val bufferSize = AudioRecord.getMinBufferSize(
+            sampleRate,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_FLOAT,
+        )
+
+        try {
+            audioRecord = AudioRecord.Builder()
+                .setAudioSource(MediaRecorder.AudioSource.MIC)
+                .setAudioFormat(
+                    AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+                        .setSampleRate(sampleRate)
+                        .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                        .build(),
+                )
+                .setBufferSizeInBytes(bufferSize)
+                .build()
+
+            audioRecord?.startRecording()
+
+            recordJob = scope.launch(Dispatchers.Default) {
+                val buffer = FloatArray(bufferSize / 4)
+                while (isPlaying) {
+                    val read = audioRecord?.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING) ?: 0
+                    if (read > 0) {
+                        val magSq = calculateGoertzel(buffer, read, frequency)
+                        val mag = sqrt(magSq)
+                        // Heuristic normalization for UI
+                        val normalized = (mag / (read / 2.0)).coerceIn(0.0, 1.0)
+                        measuredLevel = normalized
+                    }
+                }
+                audioRecord?.stop()
+                audioRecord?.release()
+                audioRecord = null
+                measuredLevel = 0.0
+            }
+        } catch (_: SecurityException) {
+            // Permission might have been revoked
+            measuredLevel = 0.0
+        }
+    }
+
+    private fun calculateGoertzel(samples: FloatArray, len: Int, targetFreq: Double): Double {
+        val omega = 2.0 * PI * targetFreq / sampleRate
+        val cosine = cos(omega)
+        val coeff = 2.0 * cosine
+
+        var q0: Double
+        var q1 = 0.0
+        var q2 = 0.0
+
+        for (i in 0 until len) {
+            q0 = coeff * q1 - q2 + samples[i]
+            q2 = q1
+            q1 = q0
+        }
+        return q1 * q1 + q2 * q2 - q1 * q2 * coeff
+    }
+
     fun stop() {
         if (isPlaying) {
             isStopping = true
@@ -204,8 +280,11 @@ class ToneGenerator {
         isPlaying = false
         isStopping = false
         job?.cancel()
+        recordJob?.cancel()
         audioTrack?.release()
         audioTrack = null
+        audioRecord?.release()
+        audioRecord = null
     }
 
     fun setFrequency(freq: Double) {
@@ -297,6 +376,19 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
     val context = LocalContext.current
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        if (isGranted) {
+            toneGenerator.start(scope, context)
+            isPlaying = true
+        } else {
+            // Start without recording if denied, or show a message.
+            toneGenerator.start(scope, context)
+            isPlaying = true
+        }
+    }
+
     var currentVolumeInt by remember {
         mutableIntStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
     }
@@ -324,16 +416,35 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
     ) {
         Text("Tone Generator", fontSize = 18.sp, color = Color.Gray)
 
-        FrequencyWheel(
-            value = frequency,
-            volume = volumePercentage,
-            onValueChange = {
-                frequency = it
-                toneGenerator.setFrequency(it.toDouble())
-            },
-            range = 20f..500f,
-            size = 240.dp,
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            FrequencyWheel(
+                value = frequency,
+                volume = volumePercentage,
+                onValueChange = {
+                    frequency = it
+                    toneGenerator.setFrequency(it.toDouble())
+                },
+                range = 20f..500f,
+                size = 240.dp,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Measured Level Indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.width(240.dp).padding(horizontal = 16.dp)
+            ) {
+                Text("Mic Level:", fontSize = 12.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.width(8.dp))
+                LinearProgressIndicator(
+                    progress = { toneGenerator.measuredLevel.toFloat() },
+                    modifier = Modifier.weight(1f).height(4.dp),
+                    color = Color.Blue,
+                    trackColor = Color.LightGray,
+                )
+            }
+        }
 
         val channels = listOf("Left", "Both", "Right")
         SingleChoiceSegmentedButtonRow(
@@ -376,10 +487,19 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, modifier: Modifier = Modif
                     toneGenerator.stop()
                     overtoneCount = 0f
                     toneGenerator.overtones = 0
+                    isPlaying = false
                 } else {
-                    toneGenerator.start(scope)
+                    if (ContextCompat.checkSelfPermission(
+                            context,
+                            android.Manifest.permission.RECORD_AUDIO
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    } else {
+                        toneGenerator.start(scope, context)
+                        isPlaying = true
+                    }
                 }
-                isPlaying = !isPlaying
             },
             modifier = Modifier.size(110.dp),
         ) {
