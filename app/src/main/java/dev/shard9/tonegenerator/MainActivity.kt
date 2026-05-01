@@ -18,12 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import dev.shard9.tonegenerator.ui.theme.ToneGeneratorTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -40,12 +46,8 @@ class MainActivity : ComponentActivity() {
         toneGenerator = ToneGenerator()
         setContent {
             ToneGeneratorTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    toneGenerator?.let { generator ->
-                        ToneGeneratorScreen(
-                            toneGenerator = generator, modifier = Modifier.padding(innerPadding),
-                        )
-                    }
+                toneGenerator?.let { generator ->
+                    AppNavigation(toneGenerator = generator)
                 }
             }
         }
@@ -208,6 +210,78 @@ class ToneGenerator {
 
     fun setFrequency(freq: Double) {
         frequency = freq
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppNavigation(toneGenerator: ToneGenerator) {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Spacer(modifier = Modifier.height(12.dp))
+                NavigationDrawerItem(
+                    label = { Text("Tone Generator") },
+                    selected = currentRoute == "generator",
+                    onClick = {
+                        navController.navigate("generator") {
+                            popUpTo("generator") { inclusive = true }
+                        }
+                        scope.launch { drawerState.close() }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+                NavigationDrawerItem(
+                    label = { Text("Settings") },
+                    selected = currentRoute == "settings",
+                    onClick = {
+                        navController.navigate("settings")
+                        scope.launch { drawerState.close() }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                )
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("Tone generator") },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            NavHost(
+                navController = navController,
+                startDestination = "generator",
+                modifier = Modifier.padding(padding)
+            ) {
+                composable("generator") {
+                    ToneGeneratorScreen(toneGenerator = toneGenerator)
+                }
+                composable("settings") {
+                    SettingsScreen()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SettingsScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("some settings...", fontSize = 20.sp, color = Color.Gray)
     }
 }
 
