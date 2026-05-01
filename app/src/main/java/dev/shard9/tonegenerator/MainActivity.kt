@@ -9,6 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -506,6 +509,18 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
     var overtoneCount by remember { mutableFloatStateOf(0f) }
     var channelIndex by remember { mutableIntStateOf(1) } // Default: Both
     var showSlotPicker by remember { mutableStateOf(false) }
+    var confirmationText by remember { mutableStateOf("") }
+    var confirmationVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(confirmationText) {
+        if (confirmationText.isNotEmpty()) {
+            confirmationVisible = true
+            delay(1000)
+            confirmationVisible = false
+            delay(500) // wait for fade out
+            confirmationText = ""
+        }
+    }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -537,8 +552,15 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                 for (i in 0 until viewModel.slotCount) {
                     ListItem(
                         headlineContent = { Text(viewModel.slotNames[i]) },
+                        supportingContent = {
+                            viewModel.currentSessionMeasurements[i]?.let {
+                                Text("Stored: ${String.format(Locale.US, "%.1f", it)}")
+                            }
+                        },
                         modifier = Modifier.clickable {
-                            viewModel.saveMeasurement(i, toneGenerator.measuredLevel * 10.0)
+                            val value = toneGenerator.measuredLevel * 10.0
+                            viewModel.saveMeasurement(i, value)
+                            confirmationText = "${viewModel.slotNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
                             showSlotPicker = false
                         }
                     )
@@ -565,124 +587,145 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        Text("Tone Generator", fontSize = 18.sp, color = Color.Gray)
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            FrequencyWheel(
-                value = frequency,
-                volume = volumePercentage,
-                onValueChange = {
-                    frequency = it
-                    toneGenerator.setFrequency(it.toDouble())
-                },
-                range = 20f..500f,
-                size = 240.dp,
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Measured Level Indicator
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
-            ) {
-                Text("Mic Level:", fontSize = 12.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.width(8.dp))
-                LinearProgressIndicator(
-                    progress = { toneGenerator.measuredLevel.toFloat() },
-                    modifier = Modifier.weight(1f).height(4.dp),
-                    color = Color.Blue,
-                    trackColor = Color.LightGray,
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                val measuredValue = toneGenerator.measuredLevel * 10.0
-                Text(
-                    text = String.format(Locale.US, "%.1f", measuredValue),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.width(30.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                IconButton(
-                    onClick = { showSlotPicker = true },
-                    modifier = Modifier.size(32.dp),
-                    enabled = isPlaying
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "Save to slot",
-                        tint = if (isPlaying) Color.Blue else Color.LightGray
-                    )
-                }
-            }
-        }
-
-        val channels = listOf("Left", "Both", "Right")
-        SingleChoiceSegmentedButtonRow(
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceEvenly,
         ) {
-            channels.forEachIndexed { index, label ->
-                SegmentedButton(
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = channels.size),
-                    onClick = {
-                        channelIndex = index
-                        toneGenerator.channelSelection = index
+            Text("Tone Generator", fontSize = 18.sp, color = Color.Gray)
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                FrequencyWheel(
+                    value = frequency,
+                    volume = volumePercentage,
+                    onValueChange = {
+                        frequency = it
+                        toneGenerator.setFrequency(it.toDouble())
                     },
-                    selected = channelIndex == index,
+                    range = 20f..500f,
+                    size = 240.dp,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Measured Level Indicator
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                 ) {
-                    Text(label, fontSize = 12.sp)
-                }
-            }
-        }
-
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Overtones: ${overtoneCount.toInt()}")
-            Slider(
-                value = overtoneCount,
-                onValueChange = {
-                    overtoneCount = it
-                    toneGenerator.overtones = it.toInt()
-                },
-                valueRange = 0f..5f,
-                steps = 4,
-                modifier = Modifier.width(280.dp),
-            )
-            Text("Adds multiples of frequency (2x, 4x, etc.)", fontSize = 12.sp, color = Color.Gray)
-        }
-
-        Button(
-            onClick = {
-                if (isPlaying) {
-                    toneGenerator.stop()
-                    viewModel.finishSession(frequency.toDouble(), clipboardManager)
-                    overtoneCount = 0f
-                    toneGenerator.overtones = 0
-                    isPlaying = false
-                } else {
-                    if (ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.RECORD_AUDIO
-                        ) != PackageManager.PERMISSION_GRANTED
+                    Text("Mic Level:", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LinearProgressIndicator(
+                        progress = { toneGenerator.measuredLevel.toFloat() },
+                        modifier = Modifier.weight(1f).height(4.dp),
+                        color = Color.Blue,
+                        trackColor = Color.LightGray,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    val measuredValue = toneGenerator.measuredLevel * 10.0
+                    Text(
+                        text = String.format(Locale.US, "%.1f", measuredValue),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.width(30.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(
+                        onClick = { showSlotPicker = true },
+                        modifier = Modifier.size(32.dp),
+                        enabled = isPlaying
                     ) {
-                        permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                    } else {
-                        toneGenerator.start(scope, context)
-                        isPlaying = true
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Save to slot",
+                            tint = if (isPlaying) Color.Blue else Color.LightGray
+                        )
                     }
                 }
-            },
-            modifier = Modifier.size(110.dp),
+            }
+
+            val channels = listOf("Left", "Both", "Right")
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) {
+                channels.forEachIndexed { index, label ->
+                    SegmentedButton(
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = channels.size),
+                        onClick = {
+                            channelIndex = index
+                            toneGenerator.channelSelection = index
+                        },
+                        selected = channelIndex == index,
+                    ) {
+                        Text(label, fontSize = 12.sp)
+                    }
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Overtones: ${overtoneCount.toInt()}")
+                Slider(
+                    value = overtoneCount,
+                    onValueChange = {
+                        overtoneCount = it
+                        toneGenerator.overtones = it.toInt()
+                    },
+                    valueRange = 0f..5f,
+                    steps = 4,
+                    modifier = Modifier.width(280.dp),
+                )
+                Text("Adds multiples of frequency (2x, 4x, etc.)", fontSize = 12.sp, color = Color.Gray)
+            }
+
+            Button(
+                onClick = {
+                    if (isPlaying) {
+                        toneGenerator.stop()
+                        viewModel.finishSession(frequency.toDouble(), clipboardManager)
+                        overtoneCount = 0f
+                        toneGenerator.overtones = 0
+                        isPlaying = false
+                    } else {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.RECORD_AUDIO
+                            ) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            toneGenerator.start(scope, context)
+                            isPlaying = true
+                        }
+                    }
+                },
+                modifier = Modifier.size(110.dp),
+            ) {
+                Text(if (isPlaying) "STOP" else "PLAY")
+            }
+        }
+
+        AnimatedVisibility(
+            visible = confirmationVisible,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.Center)
         ) {
-            Text(if (isPlaying) "STOP" else "PLAY")
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.7f)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(
+                    text = confirmationText,
+                    color = Color.White,
+                    modifier = Modifier.padding(16.dp),
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
     }
 }
