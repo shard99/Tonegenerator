@@ -199,7 +199,8 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         toneGenerator.stop()
                         viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
                             scope.launch {
-                                clipboard.setClipEntry(ClipData.newPlainText("Tone Results", result).toClipEntry())
+                                val csvData = "${viewModel.getCSVHeader()}\n$result"
+                                clipboard.setClipEntry(ClipData.newPlainText("Tone Results", csvData).toClipEntry())
                             }
                         }
                         viewModel.updatePlayingState(false)

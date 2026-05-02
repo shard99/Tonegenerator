@@ -54,9 +54,11 @@ fun ResultsScreen(viewModel: AppViewModel) {
 
             Button(
                 onClick = {
+                    val header = viewModel.getCSVHeader()
                     val allText = viewModel.history.joinToString("\n")
+                    val csvData = "$header\n$allText"
                     scope.launch {
-                        clipboard.setClipEntry(ClipData.newPlainText("Tone History", allText).toClipEntry())
+                        clipboard.setClipEntry(ClipData.newPlainText("Tone History", csvData).toClipEntry())
                     }
                 },
                 modifier = Modifier.fillMaxWidth()

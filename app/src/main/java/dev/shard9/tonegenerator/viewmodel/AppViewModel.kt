@@ -101,6 +101,14 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         currentSessionMeasurements[positionIndex] = value
     }
 
+    fun getCSVHeader(): String {
+        val header = StringBuilder("Hz")
+        for (i in 0 until positionCount) {
+            header.append(";${positionNames[i]};Value for ${positionNames[i]}")
+        }
+        return header.toString()
+    }
+
     fun finishSession(frequency: Double, onResult: (String) -> Unit) {
         if (currentSessionMeasurements.isEmpty()) return
 
