@@ -64,14 +64,14 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 enum class ThemeMode { LIGHT, DARK, AUTO }
 
 class AppViewModel(private val dataStore: DataStore<Preferences>) : ViewModel() {
-    private val SLOT_COUNT = intPreferencesKey("slot_count")
+    private val POSITION_COUNT = intPreferencesKey("position_count")
     private val MIN_FREQ = floatPreferencesKey("min_freq")
     private val MAX_FREQ = floatPreferencesKey("max_freq")
     private val THEME_MODE = stringPreferencesKey("theme_mode")
-    private val SLOT_NAMES_PREFIX = "slot_name_"
+    private val POSITION_NAMES_PREFIX = "position_name_"
 
-    var slotCount by mutableIntStateOf(3)
-    var slotNames by mutableStateOf(List(6) { "Position ${it + 1}" })
+    var positionCount by mutableIntStateOf(3)
+    var positionNames by mutableStateOf(List(6) { "Position ${it + 1}" })
     var minFreq by mutableFloatStateOf(20f)
     var maxFreq by mutableFloatStateOf(400f)
     var themeMode by mutableStateOf(ThemeMode.AUTO)
@@ -82,33 +82,33 @@ class AppViewModel(private val dataStore: DataStore<Preferences>) : ViewModel() 
     init {
         viewModelScope.launch {
             val prefs = dataStore.data.first()
-            slotCount = prefs[SLOT_COUNT] ?: 3
+            positionCount = prefs[POSITION_COUNT] ?: 3
             minFreq = prefs[MIN_FREQ] ?: 20f
             maxFreq = prefs[MAX_FREQ] ?: 400f
             themeMode = ThemeMode.valueOf(prefs[THEME_MODE] ?: ThemeMode.AUTO.name)
 
-            val names = slotNames.toMutableList()
+            val names = positionNames.toMutableList()
             for (i in 0 until 6) {
-                names[i] = prefs[stringPreferencesKey(SLOT_NAMES_PREFIX + i)] ?: "Position ${i + 1}"
+                names[i] = prefs[stringPreferencesKey(POSITION_NAMES_PREFIX + i)] ?: "Position ${i + 1}"
             }
-            slotNames = names
+            positionNames = names
         }
     }
 
-    fun updateSlotCount(count: Int) {
-        slotCount = count
+    fun updatePositionCount(count: Int) {
+        positionCount = count
         viewModelScope.launch {
-            dataStore.edit { it[SLOT_COUNT] = count }
+            dataStore.edit { it[POSITION_COUNT] = count }
         }
     }
 
-    fun updateSlotName(index: Int, name: String) {
+    fun updatePositionName(index: Int, name: String) {
         val sanitized = name.take(30).replace("\n", "")
-        val newList = slotNames.toMutableList()
+        val newList = positionNames.toMutableList()
         newList[index] = sanitized
-        slotNames = newList
+        positionNames = newList
         viewModelScope.launch {
-            dataStore.edit { it[stringPreferencesKey(SLOT_NAMES_PREFIX + index)] = sanitized }
+            dataStore.edit { it[stringPreferencesKey(POSITION_NAMES_PREFIX + index)] = sanitized }
         }
     }
 
@@ -131,30 +131,30 @@ class AppViewModel(private val dataStore: DataStore<Preferences>) : ViewModel() 
     }
 
     fun resetToDefaults() {
-        slotCount = 3
+        positionCount = 3
         minFreq = 20f
         maxFreq = 400f
         themeMode = ThemeMode.AUTO
         val names = List(6) { "Position ${it + 1}" }
-        slotNames = names
+        positionNames = names
 
         viewModelScope.launch {
             dataStore.edit { it.clear() }
         }
     }
 
-    fun saveMeasurement(slotIndex: Int, value: Double) {
-        currentSessionMeasurements[slotIndex] = value
+    fun saveMeasurement(positionIndex: Int, value: Double) {
+        currentSessionMeasurements[positionIndex] = value
     }
 
     fun finishSession(frequency: Double, clipboardManager: androidx.compose.ui.platform.ClipboardManager) {
         if (currentSessionMeasurements.isEmpty()) return
 
         val result = StringBuilder("${frequency.roundToInt()}")
-        for (i in 0 until slotCount) {
+        for (i in 0 until positionCount) {
             currentSessionMeasurements[i]?.let { value ->
                 val formattedValue = String.format(Locale.US, "%.1f", value)
-                result.append(";${slotNames[i]};$formattedValue")
+                result.append(";${positionNames[i]};$formattedValue")
             }
         }
 
@@ -600,24 +600,24 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Number of Slots: ${viewModel.slotCount}", fontWeight = FontWeight.SemiBold)
+        Text("Number of Positions: ${viewModel.positionCount}", fontWeight = FontWeight.SemiBold)
         Slider(
-            value = viewModel.slotCount.toFloat(),
-            onValueChange = { viewModel.updateSlotCount(it.toInt()) },
+            value = viewModel.positionCount.toFloat(),
+            onValueChange = { viewModel.updatePositionCount(it.toInt()) },
             valueRange = 1f..6f,
             steps = 4,
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Slot Names:", fontWeight = FontWeight.SemiBold)
+        Text("Position Names:", fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        for (i in 0 until viewModel.slotCount) {
+        for (i in 0 until viewModel.positionCount) {
             OutlinedTextField(
-                value = viewModel.slotNames[i],
-                onValueChange = { viewModel.updateSlotName(i, it) },
-                label = { Text("Slot ${i + 1} Name") },
+                value = viewModel.positionNames[i],
+                onValueChange = { viewModel.updatePositionName(i, it) },
+                label = { Text("Position ${i + 1} Name") },
                 maxLines = 1,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -666,7 +666,7 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
     var isPlaying by remember { mutableStateOf(false) }
     var frequency by remember { mutableFloatStateOf(100f) }
     var channelIndex by remember { mutableIntStateOf(1) }
-    var showSlotPicker by remember { mutableStateOf(false) }
+    var showPositionPicker by remember { mutableStateOf(false) }
     var confirmationText by remember { mutableStateOf("") }
     var confirmationVisible by remember { mutableStateOf(false) }
 
@@ -692,19 +692,19 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
         isPlaying = true
     }
 
-    if (showSlotPicker) {
-        ModalBottomSheet(onDismissRequest = { showSlotPicker = false }) {
+    if (showPositionPicker) {
+        ModalBottomSheet(onDismissRequest = { showPositionPicker = false }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
                     .padding(bottom = 32.dp)
             ) {
-                Text("Select Slot to Store Value", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("Select Position to Store Value", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(16.dp))
-                for (i in 0 until viewModel.slotCount) {
+                for (i in 0 until viewModel.positionCount) {
                     ListItem(
-                        headlineContent = { Text(viewModel.slotNames[i]) },
+                        headlineContent = { Text(viewModel.positionNames[i]) },
                         supportingContent = {
                             viewModel.currentSessionMeasurements[i]?.let {
                                 Text("Stored: ${String.format(Locale.US, "%.1f", it)}")
@@ -713,8 +713,8 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                         modifier = Modifier.clickable {
                             val value = toneGenerator.measuredLevel * 10.0
                             viewModel.saveMeasurement(i, value)
-                            confirmationText = "${viewModel.slotNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
-                            showSlotPicker = false
+                            confirmationText = "${viewModel.positionNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
+                            showPositionPicker = false
                         }
                     )
                 }
@@ -786,13 +786,13 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = { showSlotPicker = true },
+                        onClick = { showPositionPicker = true },
                         modifier = Modifier.size(32.dp),
                         enabled = isPlaying
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
-                            contentDescription = "Save to slot",
+                            contentDescription = "Save to position",
                             tint = if (isPlaying) Color.Blue else Color.LightGray
                         )
                     }
