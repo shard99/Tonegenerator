@@ -22,6 +22,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         private set
     var graphDuration by mutableIntStateOf(3)
         private set
+    var graphSmoothing by mutableIntStateOf(3)
+        private set
     var selectedFrequency by mutableFloatStateOf(100f)
         private set
     var isPlaying by mutableStateOf(false)
@@ -39,6 +41,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     var sessionStartTime by mutableLongStateOf(0L)
         private set
 
+    private val smoothingBuffer = mutableListOf<Double>()
+
     init {
         viewModelScope.launch {
             repository.settingsFlow.collect { settings ->
@@ -48,6 +52,7 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
                 maxFreq = settings.maxFreq
                 themeMode = settings.themeMode
                 graphDuration = settings.graphDuration
+                graphSmoothing = settings.graphSmoothing
 
                 // Prune graph data if duration changed
                 val now = System.currentTimeMillis()
@@ -82,15 +87,26 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         if (playing) {
             sessionStartTime = System.currentTimeMillis()
             graphData.clear()
+            smoothingBuffer.clear()
         } else {
             graphData.clear()
+            smoothingBuffer.clear()
         }
     }
 
     fun addGraphPoint(value: Double) {
         if (!isPlaying) return
+
+        // Apply smoothing
+        smoothingBuffer.add(value)
+        while (smoothingBuffer.size > graphSmoothing) {
+            smoothingBuffer.removeAt(0)
+        }
+
+        val smoothedValue = if (smoothingBuffer.isEmpty()) 0.0 else smoothingBuffer.average()
+
         val now = System.currentTimeMillis()
-        graphData.add(DataPoint(now, value))
+        graphData.add(DataPoint(now, smoothedValue))
         // Keep only requested duration
         while (graphData.isNotEmpty() && (now - graphData.first().timestamp) > (graphDuration * 1000L)) {
             graphData.removeAt(0)
@@ -125,6 +141,12 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     fun updateGraphDuration(duration: Int) {
         viewModelScope.launch {
             repository.updateGraphDuration(duration)
+        }
+    }
+
+    fun updateGraphSmoothing(smoothing: Int) {
+        viewModelScope.launch {
+            repository.updateGraphSmoothing(smoothing)
         }
     }
 

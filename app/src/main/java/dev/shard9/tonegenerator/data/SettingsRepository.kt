@@ -13,6 +13,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     private val maxFreqKey = intPreferencesKey("max_freq")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val graphDurationKey = intPreferencesKey("graph_duration")
+    private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
     private val positionNamesPrefix = "position_name_"
 
     data class AppSettings(
@@ -21,6 +22,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val maxFreq: Int,
         val themeMode: ThemeMode,
         val graphDuration: Int,
+        val graphSmoothing: Int,
         val positionNames: List<String>
     )
 
@@ -43,12 +45,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
         val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
         val graphDuration = prefs[graphDurationKey] ?: 3
+        val graphSmoothing = prefs[graphSmoothingKey] ?: 3
 
         val positionNames = List(6) { i ->
             prefs[stringPreferencesKey(positionNamesPrefix + i)] ?: "Position ${i + 1}"
         }
 
-        AppSettings(positionCount, minFreq, maxFreq, themeMode, graphDuration, positionNames)
+        AppSettings(positionCount, minFreq, maxFreq, themeMode, graphDuration, graphSmoothing, positionNames)
     }
 
     suspend fun updatePositionCount(count: Int) {
@@ -72,6 +75,10 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun updateGraphDuration(duration: Int) {
         dataStore.edit { it[graphDurationKey] = duration }
+    }
+
+    suspend fun updateGraphSmoothing(smoothing: Int) {
+        dataStore.edit { it[graphSmoothingKey] = smoothing }
     }
 
     suspend fun resetToDefaults() {

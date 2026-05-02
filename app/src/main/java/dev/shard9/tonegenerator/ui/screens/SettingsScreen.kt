@@ -152,6 +152,16 @@ fun SettingsScreen(viewModel: AppViewModel) {
         )
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text("Graph Smoothing (Mean of X): ${viewModel.graphSmoothing}", fontWeight = FontWeight.SemiBold)
+        Slider(
+            value = viewModel.graphSmoothing.toFloat(),
+            onValueChange = { viewModel.updateGraphSmoothing(it.toInt()) },
+            valueRange = 1f..10f,
+            steps = 8,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Text("Number of Positions: ${viewModel.positionCount}", fontWeight = FontWeight.SemiBold)
         Slider(
             value = viewModel.positionCount.toFloat(),

@@ -15,8 +15,8 @@ android {
         applicationId = "dev.shard9.tonegenerator"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.2.4"
+        versionCode = 19
+        versionName = "1.2.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
