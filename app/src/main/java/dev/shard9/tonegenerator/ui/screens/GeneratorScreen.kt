@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
+import dev.shard9.tonegenerator.ui.components.MeasurementGraph
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -43,6 +45,15 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
 
     LaunchedEffect(viewModel.selectedFrequency) {
         toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
+    }
+
+    LaunchedEffect(viewModel.isPlaying) {
+        if (viewModel.isPlaying) {
+            while (viewModel.isPlaying) {
+                viewModel.addGraphPoint(toneGenerator.measuredLevel * 10.0)
+                delay(33) // ~30 FPS
+            }
+        }
     }
 
     LaunchedEffect(confirmationText) {
@@ -176,6 +187,17 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                MeasurementGraph(
+                    dataPoints = viewModel.graphData,
+                    startTime = viewModel.sessionStartTime,
+                    durationSeconds = viewModel.graphDuration,
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(100.dp)
+                )
             }
 
             val channels = listOf("Left", "Both", "Right")

@@ -20,6 +20,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         private set
     var themeMode by mutableStateOf(ThemeMode.AUTO)
         private set
+    var graphDuration by mutableIntStateOf(3)
+        private set
     var selectedFrequency by mutableFloatStateOf(100f)
         private set
     var isPlaying by mutableStateOf(false)
@@ -30,6 +32,12 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     var history = mutableStateListOf<String>()
         private set
 
+    data class DataPoint(val timestamp: Long, val value: Double)
+    var graphData = mutableStateListOf<DataPoint>()
+        private set
+    var sessionStartTime by mutableLongStateOf(0L)
+        private set
+
     init {
         viewModelScope.launch {
             repository.settingsFlow.collect { settings ->
@@ -38,6 +46,13 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
                 minFreq = settings.minFreq
                 maxFreq = settings.maxFreq
                 themeMode = settings.themeMode
+                graphDuration = settings.graphDuration
+
+                // Prune graph data if duration changed
+                val now = System.currentTimeMillis()
+                while (graphData.isNotEmpty() && (now - graphData.first().timestamp) > (graphDuration * 1000L)) {
+                    graphData.removeAt(0)
+                }
 
                 // Ensure history is capped to new positionCount
                 while (history.size > positionCount) {
@@ -64,6 +79,22 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
 
     fun updatePlayingState(playing: Boolean) {
         isPlaying = playing
+        if (playing) {
+            sessionStartTime = System.currentTimeMillis()
+            graphData.clear()
+        } else {
+            graphData.clear()
+        }
+    }
+
+    fun addGraphPoint(value: Double) {
+        if (!isPlaying) return
+        val now = System.currentTimeMillis()
+        graphData.add(DataPoint(now, value))
+        // Keep only requested duration
+        while (graphData.isNotEmpty() && (now - graphData.first().timestamp) > (graphDuration * 1000L)) {
+            graphData.removeAt(0)
+        }
     }
 
     fun updatePositionCount(count: Int) {
@@ -88,6 +119,12 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     fun updateTheme(mode: ThemeMode) {
         viewModelScope.launch {
             repository.updateTheme(mode)
+        }
+    }
+
+    fun updateGraphDuration(duration: Int) {
+        viewModelScope.launch {
+            repository.updateGraphDuration(duration)
         }
     }
 

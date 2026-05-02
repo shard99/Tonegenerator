@@ -142,6 +142,16 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+        Text("Graph Window Duration: ${viewModel.graphDuration}s", fontWeight = FontWeight.SemiBold)
+        Slider(
+            value = viewModel.graphDuration.toFloat(),
+            onValueChange = { viewModel.updateGraphDuration(it.toInt()) },
+            valueRange = 2f..10f,
+            steps = 7,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
         Text("Number of Positions: ${viewModel.positionCount}", fontWeight = FontWeight.SemiBold)
         Slider(
             value = viewModel.positionCount.toFloat(),

@@ -12,6 +12,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
     private val minFreqKey = intPreferencesKey("min_freq")
     private val maxFreqKey = intPreferencesKey("max_freq")
     private val themeModeKey = stringPreferencesKey("theme_mode")
+    private val graphDurationKey = intPreferencesKey("graph_duration")
     private val positionNamesPrefix = "position_name_"
 
     data class AppSettings(
@@ -19,6 +20,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         val minFreq: Int,
         val maxFreq: Int,
         val themeMode: ThemeMode,
+        val graphDuration: Int,
         val positionNames: List<String>
     )
 
@@ -40,12 +42,13 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         }
 
         val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
+        val graphDuration = prefs[graphDurationKey] ?: 3
 
         val positionNames = List(6) { i ->
             prefs[stringPreferencesKey(positionNamesPrefix + i)] ?: "Position ${i + 1}"
         }
 
-        AppSettings(positionCount, minFreq, maxFreq, themeMode, positionNames)
+        AppSettings(positionCount, minFreq, maxFreq, themeMode, graphDuration, positionNames)
     }
 
     suspend fun updatePositionCount(count: Int) {
@@ -65,6 +68,10 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun updateTheme(mode: ThemeMode) {
         dataStore.edit { it[themeModeKey] = mode.name }
+    }
+
+    suspend fun updateGraphDuration(duration: Int) {
+        dataStore.edit { it[graphDurationKey] = duration }
     }
 
     suspend fun resetToDefaults() {
