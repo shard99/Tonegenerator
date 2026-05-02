@@ -62,4 +62,14 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+
+    // Dependency constraints to address high-severity Dependabot security alerts
+    constraints {
+        implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+        implementation("io.netty:netty-codec-http2:4.1.132.Final")
+        implementation("io.netty:netty-codec-http:4.1.132.Final")
+        implementation("org.bitbucket.b_c:jose4j:0.9.6")
+        implementation("org.jdom:jdom2:2.0.6.1")
+        implementation("io.netty:netty-handler:4.1.118.Final")
+    }
 }
