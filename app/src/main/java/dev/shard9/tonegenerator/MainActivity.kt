@@ -564,17 +564,17 @@ fun SettingsScreen(viewModel: AppViewModel) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text("Theme Mode", fontWeight = FontWeight.SemiBold)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+        val themeModes = listOf(ThemeMode.LIGHT, ThemeMode.AUTO, ThemeMode.DARK)
+        SingleChoiceSegmentedButtonRow(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            ThemeMode.entries.forEach { mode ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(
-                        selected = viewModel.themeMode == mode,
-                        onClick = { viewModel.updateTheme(mode) }
-                    )
-                    Text(mode.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() })
+            themeModes.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
+                    onClick = { viewModel.updateTheme(mode) },
+                    selected = viewModel.themeMode == mode
+                ) {
+                    Text(mode.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }, fontSize = 12.sp)
                 }
             }
         }
