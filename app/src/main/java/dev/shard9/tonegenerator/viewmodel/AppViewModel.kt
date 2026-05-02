@@ -39,6 +39,12 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
                 maxFreq = settings.maxFreq
                 themeMode = settings.themeMode
 
+                // Ensure history is capped to new positionCount
+                while (history.size > positionCount) {
+                    if (history.isNotEmpty()) history.removeAt(history.size - 1)
+                    else break
+                }
+
                 // Ensure selected frequency is within valid range
                 if (selectedFrequency < minFreq || selectedFrequency > maxFreq) {
                     resetSelectedFrequency(minFreq, maxFreq)
@@ -108,8 +114,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
 
         val resultString = result.toString()
         history.add(0, resultString)
-        if (history.size > 3) {
-            history.removeAt(3)
+        while (history.size > positionCount) {
+            history.removeAt(history.size - 1)
         }
 
         onResult(resultString)
