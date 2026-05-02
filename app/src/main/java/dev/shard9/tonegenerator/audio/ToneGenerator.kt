@@ -2,13 +2,23 @@ package dev.shard9.tonegenerator.audio
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.*
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.AudioTrack
+import android.media.MediaRecorder
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.*
-import kotlin.math.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.pow
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class ToneGenerator {
     private val sampleRate = 44100
@@ -186,7 +196,7 @@ class ToneGenerator {
                         val magSq = calculateGoertzel(buffer, read, frequency)
                         val mag = sqrt(magSq)
                         // The last * 1.5 here is just to get larger differences since
-                        // we do not need the top end (i hope)
+                        // we do not need the top end (I hope)
                         val normalized = ((mag / (read / 2.0)) * 2.0).coerceIn(0.0, 1.0)
                         measuredLevel = normalized
                     }

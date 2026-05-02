@@ -1,10 +1,12 @@
 package dev.shard9.tonegenerator
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.shard9.tonegenerator.audio.ToneGenerator
@@ -12,8 +14,6 @@ import dev.shard9.tonegenerator.data.SettingsRepository
 import dev.shard9.tonegenerator.ui.AppNavigation
 import dev.shard9.tonegenerator.ui.theme.LFTonegenTheme
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
-import androidx.datastore.preferences.preferencesDataStore
-import android.content.Context
 
 val Context.dataStore by preferencesDataStore(name = "settings")
 
