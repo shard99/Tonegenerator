@@ -136,11 +136,11 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
                 ) {
-                    Text("Mic Level:", fontSize = 12.sp, color = Color.Gray)
+                    Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
                     LinearProgressIndicator(
                         progress = { toneGenerator.measuredLevel.toFloat() },
-                        modifier = Modifier.weight(1f).height(4.dp),
+                        modifier = Modifier.weight(1f).height(6.dp),
                         color = Color.Blue,
                         trackColor = Color.LightGray,
                     )
@@ -148,20 +148,21 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                     val measuredValue = toneGenerator.measuredLevel * 10.0
                     Text(
                         text = String.format(Locale.US, "%.1f", measuredValue),
-                        fontSize = 14.sp,
+                        fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.width(30.dp)
+                        modifier = Modifier.width(45.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = { showPositionPicker = true },
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(48.dp),
                         enabled = isPlaying
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = "Save to position",
-                            tint = if (isPlaying) Color.Blue else Color.LightGray
+                            tint = if (isPlaying) Color.Blue else Color.LightGray,
+                            modifier = Modifier.size(36.dp)
                         )
                     }
                 }
