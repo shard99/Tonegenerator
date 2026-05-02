@@ -10,6 +10,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.shard9.tonegenerator.BuildConfig
+
 
 @Composable
 fun AboutScreen() {
@@ -18,20 +20,20 @@ fun AboutScreen() {
             .fillMaxSize()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Text("Tone Generator", fontSize = 28.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         Text("Developer: Andreas Østrem Nielsen")
         Text("GitHub: https://github.com/shard99/Tonegenerator")
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Version: 1.0.2")
-        Text("Date: May 2026")
+        Text("Version: ${BuildConfig.VERSION_NAME}")
+        Text("Date: ${BuildConfig.BUILD_DATE}")
         Spacer(modifier = Modifier.height(32.dp))
         Text(
-            "A precise tool for debugging room acoustics and testing audio performance.",
+            "A precise tool for debugging low frequency room acoustics.",
             textAlign = TextAlign.Center,
-            color = Color.Gray
+            color = Color.Gray,
         )
     }
 }
