@@ -28,14 +28,14 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         // Handle migration from Float to Int to prevent ClassCastException
         val minFreq = try {
             prefs[minFreqKey] ?: 20
-        } catch (e: ClassCastException) {
+        } catch (_: ClassCastException) {
             // If it was stored as Float, we'll get an error. Convert it.
             (prefs[floatPreferencesKey("min_freq")] ?: 20f).toInt()
         }
 
         val maxFreq = try {
             prefs[maxFreqKey] ?: 400
-        } catch (e: ClassCastException) {
+        } catch (_: ClassCastException) {
             (prefs[floatPreferencesKey("max_freq")] ?: 400f).toInt()
         }
 

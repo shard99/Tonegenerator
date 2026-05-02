@@ -10,6 +10,9 @@ This document tracks architectural decisions and best practices to maintain code
 - **Versioning**: When modifying `app/build.gradle.kts` or implementing new features, always increment `defaultConfig.versionCode` by 1 and increase the patch number of `versionName` (e.g., 1.1.1 -> 1.1.2).
 - **Git Awareness**: Before incrementing, check if the version numbers have already been modified in uncommitted changes to prevent duplicate increments during the same development session.
 
+## Kotlin Best Practices
+- **Rule**: Use anonymous names (`_`) for unused parameters in lambdas and unused exception names in `catch` blocks to improve code clarity.
+
 ## Clipboard Management
 - **Rule**: Avoid `androidx.compose.ui.platform.ClipboardManager` (deprecated).
 - **Replacement**: Use `androidx.compose.ui.platform.Clipboard` via `LocalClipboard.current`.
