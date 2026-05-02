@@ -36,7 +36,6 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modifier: Modifier = Modifier) {
-    var isPlaying by remember { mutableStateOf(false) }
     var channelIndex by remember { mutableIntStateOf(1) }
     var showPositionPicker by remember { mutableStateOf(false) }
     var confirmationText by remember { mutableStateOf("") }
@@ -65,7 +64,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
         ActivityResultContracts.RequestPermission(),
     ) { _ ->
         toneGenerator.start(scope, context)
-        isPlaying = true
+        viewModel.updatePlayingState(true)
     }
 
     if (showPositionPicker) {
@@ -162,12 +161,12 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                     IconButton(
                         onClick = { showPositionPicker = true },
                         modifier = Modifier.size(48.dp),
-                        enabled = isPlaying
+                        enabled = viewModel.isPlaying
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = "Save to position",
-                            tint = if (isPlaying) Color.Blue else Color.LightGray,
+                            tint = if (viewModel.isPlaying) Color.Blue else Color.LightGray,
                             modifier = Modifier.size(36.dp)
                         )
                     }
@@ -196,14 +195,14 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
 
             Button(
                 onClick = {
-                    if (isPlaying) {
+                    if (viewModel.isPlaying) {
                         toneGenerator.stop()
                         viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
                             scope.launch {
                                 clipboard.setClipEntry(ClipData.newPlainText("Tone Results", result).toClipEntry())
                             }
                         }
-                        isPlaying = false
+                        viewModel.updatePlayingState(false)
                     } else {
                         if (ContextCompat.checkSelfPermission(
                                 context,
@@ -214,13 +213,13 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         } else {
                             toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
                             toneGenerator.start(scope, context)
-                            isPlaying = true
+                            viewModel.updatePlayingState(true)
                         }
                     }
                 },
                 modifier = Modifier.size(110.dp),
             ) {
-                Text(if (isPlaying) "STOP" else "PLAY")
+                Text(if (viewModel.isPlaying) "STOP" else "PLAY")
             }
         }
 

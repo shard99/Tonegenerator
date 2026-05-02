@@ -22,6 +22,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         private set
     var selectedFrequency by mutableFloatStateOf(100f)
         private set
+    var isPlaying by mutableStateOf(false)
+        private set
 
     var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
         private set
@@ -52,6 +54,10 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
 
     fun updateSelectedFrequency(freq: Float) {
         selectedFrequency = freq
+    }
+
+    fun updatePlayingState(playing: Boolean) {
+        isPlaying = playing
     }
 
     fun updatePositionCount(count: Int) {

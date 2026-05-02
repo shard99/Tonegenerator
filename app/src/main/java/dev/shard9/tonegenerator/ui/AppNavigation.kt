@@ -10,16 +10,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import android.content.ClipData
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.screens.AboutScreen
 import dev.shard9.tonegenerator.ui.screens.GeneratorScreen
 import dev.shard9.tonegenerator.ui.screens.ResultsScreen
 import dev.shard9.tonegenerator.ui.screens.SettingsScreen
+import androidx.compose.ui.platform.toClipEntry
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
@@ -38,6 +41,19 @@ fun AppNavigation(toneGenerator: ToneGenerator, viewModel: AppViewModel) {
         DrawerItem("Settings", "settings", Icons.Default.Settings),
         DrawerItem("About", "about", Icons.Default.Info)
     )
+
+    val clipboard = LocalClipboard.current
+    LaunchedEffect(drawerState.isOpen) {
+        if (drawerState.isOpen && viewModel.isPlaying) {
+            toneGenerator.stop()
+            viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
+                scope.launch {
+                    clipboard.setClipEntry(ClipData.newPlainText("Tone Results", result).toClipEntry())
+                }
+            }
+            viewModel.updatePlayingState(false)
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,

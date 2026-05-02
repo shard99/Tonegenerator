@@ -6,7 +6,8 @@ nodes, and testing bass performance.
 ## How to Use
 
 1. **Select Frequency**: Rotate the large central wheel to pick your target frequency.
-2. **Set Overtones**: Use the settings to add harmonics if needed for node testing (feature currently hidden).
+2. **Set Overtones**: Use the settings to add harmonics if needed for node testing (feature
+   currently hidden).
 3. **Choose Channel**: Select Left, Right, or Both depending on your hardware setup.
 4. **Play/Stop**: Use the prominent button at the bottom. Notice the smooth fade-in and
    instantaneous (but pop-free) stop.
@@ -17,7 +18,8 @@ nodes, and testing bass performance.
   low-distortion sine wave generation.
 - **Logarithmic Frequency Control**: A custom circular wheel allows for intuitive frequency
   selection within a configurable range (default **20Hz to 400Hz**).
-- **Persistent Settings**: Slot names, frequency range, and theme preferences are saved between sessions.
+- **Persistent Settings**: Slot names, frequency range, and theme preferences are saved between
+  sessions.
 - **Measurement Slots**: Store up to 6 measured sound levels with custom labels.
 - **Safe volume handling**: Tries to prevents sudden spikes when starting and stopping a tone.
 - **Channel Selection**: Route audio to the **Left**, **Right** or **Both**.
@@ -40,7 +42,7 @@ nodes, and testing bass performance.
 
 ## License
 
-<a href="https://github.com/shard99/Tonegenerator">LF Tonegen</a> © 2026
+<a href="https://github.com/shard99/Tonegenerator">LF Tonegen</a>
 by <a href="https://github.com/shard99">Andreas Østrem Nielsen</a> is licensed
 under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA
 4.0</a>
