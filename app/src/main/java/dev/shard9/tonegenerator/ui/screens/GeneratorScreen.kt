@@ -110,7 +110,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
     }
 
     if (showPositionPicker) {
-        ModalBottomSheet(onDismissRequest = { }) {
+        ModalBottomSheet(onDismissRequest = { showPositionPicker = false }) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -132,6 +132,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                             viewModel.saveMeasurement(i, value)
                             confirmationText =
                                 "${viewModel.positionNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
+                            showPositionPicker = false
                         },
                     )
                 }
@@ -205,7 +206,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
-                        onClick = { },
+                        onClick = { showPositionPicker = true },
                         modifier = Modifier.size(48.dp),
                         enabled = viewModel.isPlaying,
                     ) {
