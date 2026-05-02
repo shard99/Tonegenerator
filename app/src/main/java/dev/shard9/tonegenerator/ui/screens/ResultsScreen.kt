@@ -3,6 +3,7 @@ package dev.shard9.tonegenerator.ui.screens
 import android.content.ClipData
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +65,15 @@ fun ResultsScreen(viewModel: AppViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Copy All to Clipboard")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = { viewModel.clearHistory() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Clear history")
             }
         }
     }

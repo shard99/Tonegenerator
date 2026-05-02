@@ -134,6 +134,10 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         }
     }
 
+    fun clearHistory() {
+        history.clear()
+    }
+
     fun saveMeasurement(positionIndex: Int, value: Double) {
         currentSessionMeasurements[positionIndex] = value
     }
