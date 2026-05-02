@@ -88,9 +88,10 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         modifier = Modifier.clickable {
                             val value = toneGenerator.measuredLevel * 10.0
                             viewModel.saveMeasurement(i, value)
-                            confirmationText = "${viewModel.positionNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
+                            confirmationText =
+                                "${viewModel.positionNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
                             showPositionPicker = false
-                        }
+                        },
                     )
                 }
             }
@@ -139,13 +140,17 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
                 ) {
                     Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
                     Spacer(modifier = Modifier.width(8.dp))
                     LinearProgressIndicator(
                         progress = { toneGenerator.measuredLevel.toFloat() },
-                        modifier = Modifier.weight(1f).height(6.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(6.dp),
                         color = Color.Blue,
                         trackColor = Color.LightGray,
                     )
@@ -155,19 +160,19 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         text = String.format(Locale.US, "%.1f", measuredValue),
                         fontSize = 21.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.width(45.dp)
+                        modifier = Modifier.width(45.dp),
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     IconButton(
                         onClick = { showPositionPicker = true },
                         modifier = Modifier.size(48.dp),
-                        enabled = viewModel.isPlaying
+                        enabled = viewModel.isPlaying,
                     ) {
                         Icon(
                             imageVector = Icons.Default.History,
                             contentDescription = "Save to position",
                             tint = if (viewModel.isPlaying) Color.Blue else Color.LightGray,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp),
                         )
                     }
                 }
@@ -207,7 +212,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                     } else {
                         if (ContextCompat.checkSelfPermission(
                                 context,
-                                android.Manifest.permission.RECORD_AUDIO
+                                android.Manifest.permission.RECORD_AUDIO,
                             ) != PackageManager.PERMISSION_GRANTED
                         ) {
                             permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
@@ -228,17 +233,17 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
             visible = confirmationVisible,
             enter = fadeIn(),
             exit = fadeOut(),
-            modifier = Modifier.align(Alignment.Center)
+            modifier = Modifier.align(Alignment.Center),
         ) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.Black.copy(alpha = 0.7f)),
-                shape = MaterialTheme.shapes.medium
+                shape = MaterialTheme.shapes.medium,
             ) {
                 Text(
                     text = confirmationText,
                     color = Color.White,
                     modifier = Modifier.padding(16.dp),
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
                 )
             }
         }

@@ -89,6 +89,7 @@ fun FrequencyWheel(
                 val center = Offset(size.toPx() / 2, size.toPx() / 2)
                 val radius = size.toPx() / 2 - 10f
 
+                // Draw background circle
                 drawCircle(
                     color = if (enabled) Color.DarkGray else Color.LightGray,
                     radius = radius,
@@ -96,6 +97,44 @@ fun FrequencyWheel(
                     style = Stroke(width = 4f),
                 )
 
+                // Draw major step markings
+                val markerLength = radius / 10f
+                val logMin = ln(minFreq.toDouble())
+                val logMax = ln(maxFreq.toDouble())
+                val logRange = logMax - logMin
+
+                if (logRange > 0) {
+                    var currentBase = 10.0
+                    while (currentBase <= maxFreq) {
+                        for (i in 1..10) {
+                            val freq = currentBase * i
+                            if (freq < minFreq) continue
+                            if (freq > maxFreq) break
+
+                            val t = (ln(freq) - logMin) / logRange
+                            val markerAngleRad = (t * 360.0 - 90.0) * (PI / 180.0)
+
+                            val start = Offset(
+                                (center.x + cos(markerAngleRad) * radius).toFloat(),
+                                (center.y + sin(markerAngleRad) * radius).toFloat(),
+                            )
+                            val end = Offset(
+                                (center.x + cos(markerAngleRad) * (radius - markerLength)).toFloat(),
+                                (center.y + sin(markerAngleRad) * (radius - markerLength)).toFloat(),
+                            )
+
+                            drawLine(
+                                color = Color.Gray.copy(alpha = 0.6f),
+                                start = start,
+                                end = end,
+                                strokeWidth = 2f,
+                            )
+                        }
+                        currentBase *= 10.0
+                    }
+                }
+
+                // Draw active sweep arc
                 drawArc(
                     color = if (enabled) Color.Blue else Color.LightGray,
                     startAngle = -90f,
