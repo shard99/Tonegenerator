@@ -1,44 +1,39 @@
 # LF Tonegen
 
 A precise, minimal Android application designed for debugging room acoustics, identifying room
-nodes, and testing bass performance.
+nodes, and testing low-frequency performance.
 
 ## How to Use
 
 1. **Select Frequency**: Rotate the large central wheel to pick your target frequency.
-2. **Set Overtones**: Use the settings to add harmonics if needed for node testing (feature
-   currently hidden).
-3. **Choose Channel**: Select Left, Right, or Both depending on your hardware setup.
-4. **Play/Stop**: Use the prominent button at the bottom. Notice the smooth fade-in and
-   instantaneous (but pop-free) stop.
+2. **Measure Levels**: Observe the real-time "Mic Level" meter.
+3. **Save Positions**: Click the history icon to save the current level to a specific position (
+   e.g., "Position 1").
+4. **Choose Channel**: Select Left, Right, or Both depending on your hardware setup.
+5. **Play/Stop**: Use the prominent button at the bottom.
+    * Stopping the tone (or opening the menu) automatically saves your session data to the **Results
+      ** history and copies it to your **clipboard** in a semicolon-separated format.
 
 ## Features
 
 - **High-Fidelity Synthesis**: Uses the `AudioTrack` API with `PCM_FLOAT` encoding for pure,
   low-distortion sine wave generation.
 - **Logarithmic Frequency Control**: A custom circular wheel allows for intuitive frequency
-  selection within a configurable range (default **20Hz to 400Hz**).
-- **Persistent Settings**: Slot names, frequency range, and theme preferences are saved between
+  selection within a configurable range (default **20Hz to 400Hz**, up to 30,000Hz).
+- **Real-time Frequency Analysis**: Uses the Goertzel algorithm for sound level measurement of the
+  generated frequency.
+- **Configurable Positions**: Define up to 6 custom measurement positions (physical locations in
+  your room).
+- **Persistent Settings**: Position names, frequency range, and theme preferences are saved between
   sessions.
-- **Measurement Slots**: Store up to 6 measured sound levels with custom labels.
-- **Safe volume handling**: Tries to prevents sudden spikes when starting and stopping a tone.
-- **Channel Selection**: Route audio to the **Left**, **Right** or **Both**.
-- **Integrated Volume Monitor**: Real-time display of system media volume to avoid sudden hearing
-  loss...
-
-## Technical Details
-
-- **Language**: Kotlin
-- **UI Framework**: Jetpack Compose (Material 3)
-- **Concurrency**: Non-blocking, low-latency audio processing.
-- **Target SDK**: 36 (Android 16)
+- **Safe Volume Handling**: Prevents sudden spikes with smooth fade-in and pop-free stop logic.
 
 ## Installation
 
 1. Clone this repository.
 2. Open the project in **Android Studio**.
-3. Build and run on an Android device (Physical device recommended since it's an audio app, but you
-   do you).
+3. Build and run on an Android device (Physical device required for microphone input and accurate
+   audio playback).
 
 ## License
 
