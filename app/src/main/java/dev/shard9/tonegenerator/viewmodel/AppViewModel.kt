@@ -1,14 +1,13 @@
 package dev.shard9.tonegenerator.viewmodel
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.data.SettingsRepository
 import kotlinx.coroutines.launch
 import java.util.Locale
-import kotlin.math.roundToInt
+import kotlin.math.*
 
 class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     var positionCount by mutableIntStateOf(3)
@@ -20,6 +19,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     var maxFreq by mutableFloatStateOf(400f)
         private set
     var themeMode by mutableStateOf(ThemeMode.AUTO)
+        private set
+    var selectedFrequency by mutableFloatStateOf(100f)
         private set
 
     var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
@@ -35,8 +36,22 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
                 minFreq = settings.minFreq
                 maxFreq = settings.maxFreq
                 themeMode = settings.themeMode
+
+                // Ensure selected frequency is within valid range
+                if (selectedFrequency < minFreq || selectedFrequency > maxFreq) {
+                    resetSelectedFrequency(minFreq, maxFreq)
+                }
             }
         }
+    }
+
+    private fun resetSelectedFrequency(min: Float, max: Float) {
+        // Set to 10% into the linear range
+        selectedFrequency = min + (max - min) * 0.1f
+    }
+
+    fun updateSelectedFrequency(freq: Float) {
+        selectedFrequency = freq
     }
 
     fun updatePositionCount(count: Int) {
@@ -55,6 +70,8 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
     fun updateFreqRange(min: Float, max: Float) {
         viewModelScope.launch {
             repository.updateFreqRange(min, max)
+            // Range update in repository will trigger settingsFlow collection
+            // which will call resetSelectedFrequency if needed.
         }
     }
 
@@ -74,7 +91,7 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         currentSessionMeasurements[positionIndex] = value
     }
 
-    fun finishSession(frequency: Double, clipboardManager: androidx.compose.ui.platform.ClipboardManager) {
+    fun finishSession(frequency: Double, onResult: (String) -> Unit) {
         if (currentSessionMeasurements.isEmpty()) return
 
         val result = StringBuilder("${frequency.roundToInt()}")
@@ -91,7 +108,7 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
             history.removeAt(3)
         }
 
-        clipboardManager.setText(AnnotatedString(resultString))
+        onResult(resultString)
         currentSessionMeasurements.clear()
     }
 }

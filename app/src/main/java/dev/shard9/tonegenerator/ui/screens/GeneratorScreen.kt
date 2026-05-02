@@ -1,5 +1,6 @@
 package dev.shard9.tonegenerator.ui.screens
 
+import android.content.ClipData
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -17,8 +18,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +29,7 @@ import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -34,11 +37,14 @@ import kotlin.math.roundToInt
 @Composable
 fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modifier: Modifier = Modifier) {
     var isPlaying by remember { mutableStateOf(false) }
-    var frequency by remember { mutableFloatStateOf(100f) }
     var channelIndex by remember { mutableIntStateOf(1) }
     var showPositionPicker by remember { mutableStateOf(false) }
     var confirmationText by remember { mutableStateOf("") }
     var confirmationVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.selectedFrequency) {
+        toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
+    }
 
     LaunchedEffect(confirmationText) {
         if (confirmationText.isNotEmpty()) {
@@ -53,7 +59,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -120,10 +126,10 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FrequencyWheel(
-                    value = frequency,
+                    value = viewModel.selectedFrequency,
                     volume = volumePercentage,
                     onValueChange = {
-                        frequency = it
+                        viewModel.updateSelectedFrequency(it)
                         toneGenerator.setFrequency(it.toDouble())
                     },
                     range = viewModel.minFreq..viewModel.maxFreq,
@@ -192,7 +198,11 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                 onClick = {
                     if (isPlaying) {
                         toneGenerator.stop()
-                        viewModel.finishSession(frequency.toDouble(), clipboardManager)
+                        viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
+                            scope.launch {
+                                clipboard.setClipEntry(ClipData.newPlainText("Tone Results", result).toClipEntry())
+                            }
+                        }
                         isPlaying = false
                     } else {
                         if (ContextCompat.checkSelfPermission(
@@ -202,6 +212,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         ) {
                             permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                         } else {
+                            toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
                             toneGenerator.start(scope, context)
                             isPlaying = true
                         }

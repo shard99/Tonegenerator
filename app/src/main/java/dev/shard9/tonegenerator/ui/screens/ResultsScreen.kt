@@ -1,24 +1,28 @@
 package dev.shard9.tonegenerator.ui.screens
 
+import android.content.ClipData
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun ResultsScreen(viewModel: AppViewModel) {
-    val clipboardManager = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -51,7 +55,9 @@ fun ResultsScreen(viewModel: AppViewModel) {
             Button(
                 onClick = {
                     val allText = viewModel.history.joinToString("\n")
-                    clipboardManager.setText(AnnotatedString(allText))
+                    scope.launch {
+                        clipboard.setClipEntry(ClipData.newPlainText("Tone History", allText).toClipEntry())
+                    }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

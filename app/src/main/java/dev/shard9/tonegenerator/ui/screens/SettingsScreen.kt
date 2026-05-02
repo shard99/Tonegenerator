@@ -3,11 +3,13 @@ package dev.shard9.tonegenerator.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shard9.tonegenerator.ThemeMode
@@ -56,15 +58,35 @@ fun SettingsScreen(viewModel: AppViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
-                value = viewModel.minFreq.toString(),
-                onValueChange = { val f = it.toFloatOrNull(); if (f != null) viewModel.updateFreqRange(f, viewModel.maxFreq) },
+                value = viewModel.minFreq.toInt().toString(),
+                onValueChange = {
+                    val clean = it.filter { char -> char.isDigit() }
+                    val i = clean.toIntOrNull()
+                    if (i != null) {
+                        val clamped = i.coerceIn(10, 30000)
+                        if (clamped < viewModel.maxFreq) {
+                            viewModel.updateFreqRange(clamped.toFloat(), viewModel.maxFreq)
+                        }
+                    }
+                },
                 label = { Text("Min") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
             OutlinedTextField(
-                value = viewModel.maxFreq.toString(),
-                onValueChange = { val f = it.toFloatOrNull(); if (f != null) viewModel.updateFreqRange(viewModel.minFreq, f) },
+                value = viewModel.maxFreq.toInt().toString(),
+                onValueChange = {
+                    val clean = it.filter { char -> char.isDigit() }
+                    val i = clean.toIntOrNull()
+                    if (i != null) {
+                        val clamped = i.coerceIn(10, 30000)
+                        if (clamped > viewModel.minFreq) {
+                            viewModel.updateFreqRange(viewModel.minFreq, clamped.toFloat())
+                        }
+                    }
+                },
                 label = { Text("Max") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.weight(1f)
             )
         }
