@@ -33,6 +33,7 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         private set
 
     data class DataPoint(val timestamp: Long, val value: Double)
+
     var graphData = mutableStateListOf<DataPoint>()
         private set
     var sessionStartTime by mutableLongStateOf(0L)
@@ -54,10 +55,9 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
                     graphData.removeAt(0)
                 }
 
-                // Ensure history is capped to new positionCount
-                while (history.size > positionCount) {
-                    if (history.isNotEmpty()) history.removeAt(history.size - 1)
-                    else break
+                // Ensure history is capped
+                while (history.size > 50) {
+                    history.removeAt(history.size - 1)
                 }
 
                 // Ensure selected frequency is within valid range

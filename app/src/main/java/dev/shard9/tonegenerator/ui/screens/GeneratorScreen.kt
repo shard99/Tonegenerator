@@ -12,8 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -180,7 +179,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         enabled = viewModel.isPlaying,
                     ) {
                         Icon(
-                            imageVector = Icons.Default.History,
+                            imageVector = Icons.Default.Star,
                             contentDescription = "Save to position",
                             tint = if (viewModel.isPlaying) Color.Blue else Color.LightGray,
                             modifier = Modifier.size(36.dp),
