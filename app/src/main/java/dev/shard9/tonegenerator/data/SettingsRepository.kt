@@ -24,8 +24,21 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { prefs ->
         val positionCount = prefs[positionCountKey] ?: 3
-        val minFreq = prefs[minFreqKey] ?: 20
-        val maxFreq = prefs[maxFreqKey] ?: 400
+
+        // Handle migration from Float to Int to prevent ClassCastException
+        val minFreq = try {
+            prefs[minFreqKey] ?: 20
+        } catch (e: ClassCastException) {
+            // If it was stored as Float, we'll get an error. Convert it.
+            (prefs[floatPreferencesKey("min_freq")] ?: 20f).toInt()
+        }
+
+        val maxFreq = try {
+            prefs[maxFreqKey] ?: 400
+        } catch (e: ClassCastException) {
+            (prefs[floatPreferencesKey("max_freq")] ?: 400f).toInt()
+        }
+
         val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
 
         val positionNames = List(6) { i ->
