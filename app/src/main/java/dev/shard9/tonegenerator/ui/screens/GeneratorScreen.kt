@@ -28,6 +28,7 @@ import androidx.core.content.ContextCompat
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
 import dev.shard9.tonegenerator.ui.components.MeasurementGraph
+import dev.shard9.tonegenerator.ui.theme.GreenX
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -160,8 +161,8 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         progress = { toneGenerator.measuredLevel.toFloat() },
                         modifier = Modifier
                             .weight(1f)
-                            .height(6.dp),
-                        color = Color.Blue,
+                            .height(12.dp),
+                        color = GreenX,
                         trackColor = Color.LightGray,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -181,7 +182,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         Icon(
                             imageVector = Icons.Default.Star,
                             contentDescription = "Save to position",
-                            tint = if (viewModel.isPlaying) Color.Blue else Color.LightGray,
+                            tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
                             modifier = Modifier.size(36.dp),
                         )
                     }

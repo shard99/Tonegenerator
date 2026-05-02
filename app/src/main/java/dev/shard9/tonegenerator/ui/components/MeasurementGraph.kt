@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import dev.shard9.tonegenerator.ui.theme.GreenX
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 
 @Composable
@@ -17,7 +18,7 @@ fun MeasurementGraph(
     dataPoints: List<AppViewModel.DataPoint>,
     startTime: Long,
     durationSeconds: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val currentTime = System.currentTimeMillis()
     val maxVal = dataPoints.maxOfOrNull { it.value } ?: 0.0
@@ -37,7 +38,7 @@ fun MeasurementGraph(
     Canvas(
         modifier = modifier
             .background(Color.Gray.copy(alpha = 0.05f))
-            .border(1.dp, Color.LightGray.copy(alpha = 0.5f))
+            .border(1.dp, Color.LightGray.copy(alpha = 0.5f)),
     ) {
         if (dataPoints.size < 2) return@Canvas
 
@@ -65,8 +66,8 @@ fun MeasurementGraph(
 
         drawPath(
             path = path,
-            color = Color.Blue,
-            style = Stroke(width = 2.dp.toPx())
+            color = GreenX,
+            style = Stroke(width = 2.dp.toPx()),
         )
     }
 }

@@ -15,6 +15,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import dev.shard9.tonegenerator.ui.theme.GreenX
 import kotlin.math.*
 
 @Composable
@@ -50,88 +51,88 @@ fun FrequencyWheel(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(size)
-                .pointerInput(enabled, range) {
-                    if (!enabled) return@pointerInput
-                    val center =
-                        Offset(this.size.width.toFloat() / 2, this.size.height.toFloat() / 2)
-                    var previousTouchAngle: Float? = null
+							.size(size)
+							.pointerInput(enabled, range) {
+								if (!enabled) return@pointerInput
+								val center =
+									Offset(this.size.width.toFloat() / 2, this.size.height.toFloat() / 2)
+								var previousTouchAngle: Float? = null
 
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            val touchVector = offset - center
-                            previousTouchAngle =
-                                atan2(touchVector.y, touchVector.x) * (180f / PI.toFloat())
+								detectDragGestures(
+									onDragStart = { offset ->
+										val touchVector = offset - center
+										previousTouchAngle =
+											atan2(touchVector.y, touchVector.x) * (180f / PI.toFloat())
 
-                            // Reset snap state for new touch
-                            isSnapDisabledForTouch = false
-                            snapStartTime = 0L
-                            lastSnappedValue = -1f
-                        },
-                        onDragEnd = {
-                            previousTouchAngle = null
-                            snapStartTime = 0L
-                        },
-                        onDragCancel = {
-                            previousTouchAngle = null
-                            snapStartTime = 0L
-                        },
-                        onDrag = { change, _ ->
-                            change.consume()
-                            val touchVector = change.position - center
-                            val currentTouchAngle =
-                                atan2(touchVector.y, touchVector.x) * (180f / PI.toFloat())
+										// Reset snap state for new touch
+										isSnapDisabledForTouch = false
+										snapStartTime = 0L
+										lastSnappedValue = -1f
+									},
+									onDragEnd = {
+										previousTouchAngle = null
+										snapStartTime = 0L
+									},
+									onDragCancel = {
+										previousTouchAngle = null
+										snapStartTime = 0L
+									},
+									onDrag = { change, _ ->
+										change.consume()
+										val touchVector = change.position - center
+										val currentTouchAngle =
+											atan2(touchVector.y, touchVector.x) * (180f / PI.toFloat())
 
-                            previousTouchAngle?.let { prev ->
-                                var delta = currentTouchAngle - prev
-                                if (delta > 180f) delta -= 360f
-                                if (delta < -180f) delta += 360f
+										previousTouchAngle?.let { prev ->
+											var delta = currentTouchAngle - prev
+											if (delta > 180f) delta -= 360f
+											if (delta < -180f) delta += 360f
 
-                                angle = (angle + delta).coerceIn(0f, 360f)
+											angle = (angle + delta).coerceIn(0f, 360f)
 
-                                val t = angle / 360f
-                                val rawValue =
-                                    minFreq * (maxFreq / minFreq).toDouble().pow(t.toDouble())
-                                        .toFloat()
+											val t = angle / 360f
+											val rawValue =
+												minFreq * (maxFreq / minFreq).toDouble().pow(t.toDouble())
+													.toFloat()
 
-                                var finalValue = rawValue
+											var finalValue = rawValue
 
-                                if (!isSnapDisabledForTouch) {
-                                    // Calculate major step based on magnitude
-                                    val magnitude = 10.0.pow(floor(log10(rawValue.toDouble()))).toFloat()
-                                    val step = if (rawValue < 100) 10f else magnitude
+											if (!isSnapDisabledForTouch) {
+												// Calculate major step based on magnitude
+												val magnitude = 10.0.pow(floor(log10(rawValue.toDouble()))).toFloat()
+												val step = if (rawValue < 100) 10f else magnitude
 
-                                    val snapTarget = (round(rawValue / step) * step)
-                                    val snapThreshold = step * 0.3f // +/- 20% of step
+												val snapTarget = (round(rawValue / step) * step)
+												val snapThreshold = step * 0.3f // +/- 20% of step
 
-                                    if (abs(rawValue - snapTarget) <= snapThreshold) {
-                                        // We are in a snap zone
-                                        finalValue = snapTarget
+												if (abs(rawValue - snapTarget) <= snapThreshold) {
+													// We are in a snap zone
+													finalValue = snapTarget
 
-                                        if (lastSnappedValue != snapTarget) {
-                                            // Just entered this specific snap target
-                                            snapStartTime = System.currentTimeMillis()
-                                            lastSnappedValue = snapTarget
-                                        } else {
-                                            // Holding on same snap target
-                                            val elapsed = System.currentTimeMillis() - snapStartTime
-                                            if (snapStartTime > 0 && elapsed > 2000) {
-                                                isSnapDisabledForTouch = true
-                                            }
-                                        }
-                                    } else {
-                                        // Outside snap zone
-                                        snapStartTime = 0L
-                                        lastSnappedValue = -1f
-                                    }
-                                }
+													if (lastSnappedValue != snapTarget) {
+														// Just entered this specific snap target
+														snapStartTime = System.currentTimeMillis()
+														lastSnappedValue = snapTarget
+													} else {
+														// Holding on same snap target
+														val elapsed = System.currentTimeMillis() - snapStartTime
+														if (snapStartTime > 0 && elapsed > 2000) {
+															isSnapDisabledForTouch = true
+														}
+													}
+												} else {
+													// Outside snap zone
+													snapStartTime = 0L
+													lastSnappedValue = -1f
+												}
+											}
 
-                                onValueChange(finalValue)
-                            }
-                            previousTouchAngle = currentTouchAngle
-                        },
-                    )
-                },
+											onValueChange(finalValue)
+										}
+										previousTouchAngle = currentTouchAngle
+									},
+								)
+							},
             contentAlignment = Alignment.Center,
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -176,7 +177,7 @@ fun FrequencyWheel(
                                 color = Color.Gray.copy(alpha = 0.6f),
                                 start = start,
                                 end = end,
-                                strokeWidth = 2f,
+                                strokeWidth = 4f,
                             )
                         }
                         currentBase *= 10.0
@@ -185,7 +186,7 @@ fun FrequencyWheel(
 
                 // Draw active sweep arc
                 drawArc(
-                    color = if (enabled) Color.Blue else Color.LightGray,
+                    color = if (enabled) GreenX else Color.LightGray,
                     startAngle = -90f,
                     sweepAngle = angle,
                     useCenter = false,
@@ -200,7 +201,7 @@ fun FrequencyWheel(
                     center.y + sin(rad) * radius,
                 )
                 drawCircle(
-                    color = if (enabled) Color.Blue else Color.LightGray,
+                    color = if (enabled) GreenX else Color.LightGray,
                     radius = 16f,
                     center = pointPos,
                 )
