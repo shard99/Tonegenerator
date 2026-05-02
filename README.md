@@ -1,4 +1,4 @@
-# Tone Generator (Tonegen)
+# LF Tonegen
 
 A precise, minimal Android application designed for debugging room acoustics, identifying room
 nodes, and testing bass performance.
@@ -40,7 +40,7 @@ nodes, and testing bass performance.
 
 ## License
 
-<a href="https://github.com/shard99/Tonegenerator">Tone Generator</a> © 2026
+<a href="https://github.com/shard99/Tonegenerator">LF Tonegen</a> © 2026
 by <a href="https://github.com/shard99">Andreas Østrem Nielsen</a> is licensed
 under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA
 4.0</a>

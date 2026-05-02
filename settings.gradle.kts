@@ -22,5 +22,5 @@ dependencyResolutionManagement {
 	}
 }
 
-rootProject.name = "Tone generator"
+rootProject.name = "LF Tonegen"
 include(":app")

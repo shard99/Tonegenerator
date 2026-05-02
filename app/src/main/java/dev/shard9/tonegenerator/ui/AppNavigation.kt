@@ -66,7 +66,7 @@ fun AppNavigation(toneGenerator: ToneGenerator, viewModel: AppViewModel) {
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    title = { Text("Tone generator") },
+                    title = { Text("LF Tonegen") },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, contentDescription = "Menu")

@@ -9,23 +9,23 @@ import kotlinx.coroutines.flow.map
 class SettingsRepository(private val dataStore: DataStore<Preferences>) {
 
     private val positionCountKey = intPreferencesKey("position_count")
-    private val minFreqKey = floatPreferencesKey("min_freq")
-    private val maxFreqKey = floatPreferencesKey("max_freq")
+    private val minFreqKey = intPreferencesKey("min_freq")
+    private val maxFreqKey = intPreferencesKey("max_freq")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val positionNamesPrefix = "position_name_"
 
     data class AppSettings(
         val positionCount: Int,
-        val minFreq: Float,
-        val maxFreq: Float,
+        val minFreq: Int,
+        val maxFreq: Int,
         val themeMode: ThemeMode,
         val positionNames: List<String>
     )
 
     val settingsFlow: Flow<AppSettings> = dataStore.data.map { prefs ->
         val positionCount = prefs[positionCountKey] ?: 3
-        val minFreq = prefs[minFreqKey] ?: 20f
-        val maxFreq = prefs[maxFreqKey] ?: 400f
+        val minFreq = prefs[minFreqKey] ?: 20
+        val maxFreq = prefs[maxFreqKey] ?: 400
         val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
 
         val positionNames = List(6) { i ->
@@ -43,7 +43,7 @@ class SettingsRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[stringPreferencesKey(positionNamesPrefix + index)] = name }
     }
 
-    suspend fun updateFreqRange(min: Float, max: Float) {
+    suspend fun updateFreqRange(min: Int, max: Int) {
         dataStore.edit {
             it[minFreqKey] = min
             it[maxFreqKey] = max

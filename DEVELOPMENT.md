@@ -1,6 +1,14 @@
-# Development Guidelines for Tone Generator
+# Development Guidelines for LF Tonegen
 
 This document tracks architectural decisions and best practices to maintain code quality.
+
+## Project Language Standard
+- **Rule**: All code, comments, documentation, and development-related instructions must be in **English**.
+- **Exception**: Actual localization resource files (e.g., `strings.xml` for other languages) are the only files permitted to contain non-English text.
+
+## AI Automation Rules
+- **Versioning**: When modifying `app/build.gradle.kts` or implementing new features, always increment `defaultConfig.versionCode` by 1 and increase the patch number of `versionName` (e.g., 1.1.1 -> 1.1.2).
+- **Git Awareness**: Before incrementing, check if the version numbers have already been modified in uncommitted changes to prevent duplicate increments during the same development session.
 
 ## Clipboard Management
 - **Rule**: Avoid `androidx.compose.ui.platform.ClipboardManager` (deprecated).

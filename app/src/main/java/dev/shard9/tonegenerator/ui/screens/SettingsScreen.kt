@@ -2,13 +2,17 @@ package dev.shard9.tonegenerator.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,6 +23,8 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: AppViewModel) {
+    val focusManager = LocalFocusManager.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,41 +59,85 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
         Text("Frequency Range (Hz)", fontWeight = FontWeight.SemiBold)
+
+        // Local state for free editing
+        var minText by remember { mutableStateOf(viewModel.minFreq.toString()) }
+        var maxText by remember { mutableStateOf(viewModel.maxFreq.toString()) }
+
+        // Sync local state when ViewModel updates (e.g. from reset)
+        LaunchedEffect(viewModel.minFreq, viewModel.maxFreq) {
+            if (!minText.all { it.isDigit() } || minText.toIntOrNull() != viewModel.minFreq) {
+                minText = viewModel.minFreq.toString()
+            }
+            if (!maxText.all { it.isDigit() } || maxText.toIntOrNull() != viewModel.maxFreq) {
+                maxText = viewModel.maxFreq.toString()
+            }
+        }
+
+        fun finalizeFrequencyChanges() {
+            val minVal = minText.toIntOrNull() ?: viewModel.minFreq
+            val maxVal = maxText.toIntOrNull() ?: viewModel.maxFreq
+
+            // Clamp and ensure min < max
+            var finalMin = minVal.coerceIn(10, 30000)
+            var finalMax = maxVal.coerceIn(10, 30000)
+
+            if (finalMin >= finalMax) {
+                if (finalMin < 30000) {
+                    finalMax = finalMin + 1
+                } else {
+                    finalMin = finalMax - 1
+                }
+            }
+
+            viewModel.updateFreqRange(finalMin, finalMax)
+            minText = finalMin.toString()
+            maxText = finalMax.toString()
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             OutlinedTextField(
-                value = viewModel.minFreq.toInt().toString(),
-                onValueChange = {
-                    val clean = it.filter { char -> char.isDigit() }
-                    val i = clean.toIntOrNull()
-                    if (i != null) {
-                        val clamped = i.coerceIn(10, 30000)
-                        if (clamped < viewModel.maxFreq) {
-                            viewModel.updateFreqRange(clamped.toFloat(), viewModel.maxFreq)
-                        }
-                    }
+                value = minText,
+                onValueChange = { input ->
+                    minText = input.filter { it.isDigit() }
                 },
                 label = { Text("Min") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        finalizeFrequencyChanges()
+                        focusManager.clearFocus()
+                    }
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { if (!it.isFocused) finalizeFrequencyChanges() }
             )
             OutlinedTextField(
-                value = viewModel.maxFreq.toInt().toString(),
-                onValueChange = {
-                    val clean = it.filter { char -> char.isDigit() }
-                    val i = clean.toIntOrNull()
-                    if (i != null) {
-                        val clamped = i.coerceIn(10, 30000)
-                        if (clamped > viewModel.minFreq) {
-                            viewModel.updateFreqRange(viewModel.minFreq, clamped.toFloat())
-                        }
-                    }
+                value = maxText,
+                onValueChange = { input ->
+                    maxText = input.filter { it.isDigit() }
                 },
                 label = { Text("Max") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        finalizeFrequencyChanges()
+                        focusManager.clearFocus()
+                    }
+                ),
+                modifier = Modifier
+                    .weight(1f)
+                    .onFocusChanged { if (!it.isFocused) finalizeFrequencyChanges() }
             )
         }
 

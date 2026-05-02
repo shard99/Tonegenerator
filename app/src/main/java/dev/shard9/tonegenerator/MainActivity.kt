@@ -10,7 +10,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.data.SettingsRepository
 import dev.shard9.tonegenerator.ui.AppNavigation
-import dev.shard9.tonegenerator.ui.theme.ToneGeneratorTheme
+import dev.shard9.tonegenerator.ui.theme.LFTonegenTheme
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import androidx.datastore.preferences.preferencesDataStore
 import android.content.Context
@@ -42,7 +42,7 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.AUTO -> isSystemInDarkTheme()
             }
 
-            ToneGeneratorTheme(darkTheme = darkTheme) {
+            LFTonegenTheme(darkTheme = darkTheme) {
                 toneGenerator?.let { generator ->
                     AppNavigation(toneGenerator = generator, viewModel = viewModel)
                 }

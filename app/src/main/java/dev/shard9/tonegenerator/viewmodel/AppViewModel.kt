@@ -14,9 +14,9 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         private set
     var positionNames by mutableStateOf(List(6) { "Position ${it + 1}" })
         private set
-    var minFreq by mutableFloatStateOf(20f)
+    var minFreq by mutableIntStateOf(20)
         private set
-    var maxFreq by mutableFloatStateOf(400f)
+    var maxFreq by mutableIntStateOf(400)
         private set
     var themeMode by mutableStateOf(ThemeMode.AUTO)
         private set
@@ -45,7 +45,7 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         }
     }
 
-    private fun resetSelectedFrequency(min: Float, max: Float) {
+    private fun resetSelectedFrequency(min: Int, max: Int) {
         // Set to 10% into the linear range
         selectedFrequency = min + (max - min) * 0.1f
     }
@@ -67,11 +67,9 @@ class AppViewModel(private val repository: SettingsRepository) : ViewModel() {
         }
     }
 
-    fun updateFreqRange(min: Float, max: Float) {
+    fun updateFreqRange(min: Int, max: Int) {
         viewModelScope.launch {
             repository.updateFreqRange(min, max)
-            // Range update in repository will trigger settingsFlow collection
-            // which will call resetSelectedFrequency if needed.
         }
     }
 

@@ -132,7 +132,7 @@ fun GeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modif
                         viewModel.updateSelectedFrequency(it)
                         toneGenerator.setFrequency(it.toDouble())
                     },
-                    range = viewModel.minFreq..viewModel.maxFreq,
+                    range = viewModel.minFreq.toFloat()..viewModel.maxFreq.toFloat(),
                     size = 240.dp,
                 )
 

@@ -22,10 +22,10 @@ fun AboutScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Tone Generator", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        Text("LF Tonegen", fontSize = 28.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         Text("Developer: Andreas Østrem Nielsen")
-        Text("GitHub: https://github.com/shard99/Tonegenerator")
+        Text("github.com/shard99/Tonegenerator")
         Spacer(modifier = Modifier.height(24.dp))
         Text("Version: ${BuildConfig.VERSION_NAME}")
         Text("Date: ${BuildConfig.BUILD_DATE}")
