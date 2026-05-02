@@ -15,11 +15,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -40,7 +42,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,14 +54,94 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.shard9.tonegenerator.ui.theme.ToneGeneratorTheme
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.util.Locale
 import kotlin.math.*
 
-class AppViewModel : ViewModel() {
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+
+enum class ThemeMode { LIGHT, DARK, AUTO }
+
+class AppViewModel(private val dataStore: DataStore<Preferences>) : ViewModel() {
+    private val SLOT_COUNT = intPreferencesKey("slot_count")
+    private val MIN_FREQ = floatPreferencesKey("min_freq")
+    private val MAX_FREQ = floatPreferencesKey("max_freq")
+    private val THEME_MODE = stringPreferencesKey("theme_mode")
+    private val SLOT_NAMES_PREFIX = "slot_name_"
+
     var slotCount by mutableIntStateOf(3)
-    var slotNames by mutableStateOf(List(6) { "Slot ${it + 1}" })
+    var slotNames by mutableStateOf(List(6) { "Position ${it + 1}" })
+    var minFreq by mutableFloatStateOf(20f)
+    var maxFreq by mutableFloatStateOf(400f)
+    var themeMode by mutableStateOf(ThemeMode.AUTO)
+
     var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
     var history = mutableStateListOf<String>()
+
+    init {
+        viewModelScope.launch {
+            val prefs = dataStore.data.first()
+            slotCount = prefs[SLOT_COUNT] ?: 3
+            minFreq = prefs[MIN_FREQ] ?: 20f
+            maxFreq = prefs[MAX_FREQ] ?: 400f
+            themeMode = ThemeMode.valueOf(prefs[THEME_MODE] ?: ThemeMode.AUTO.name)
+
+            val names = slotNames.toMutableList()
+            for (i in 0 until 6) {
+                names[i] = prefs[stringPreferencesKey(SLOT_NAMES_PREFIX + i)] ?: "Position ${i + 1}"
+            }
+            slotNames = names
+        }
+    }
+
+    fun updateSlotCount(count: Int) {
+        slotCount = count
+        viewModelScope.launch {
+            dataStore.edit { it[SLOT_COUNT] = count }
+        }
+    }
+
+    fun updateSlotName(index: Int, name: String) {
+        val sanitized = name.take(30).replace("\n", "")
+        val newList = slotNames.toMutableList()
+        newList[index] = sanitized
+        slotNames = newList
+        viewModelScope.launch {
+            dataStore.edit { it[stringPreferencesKey(SLOT_NAMES_PREFIX + index)] = sanitized }
+        }
+    }
+
+    fun updateFreqRange(min: Float, max: Float) {
+        minFreq = min
+        maxFreq = max
+        viewModelScope.launch {
+            dataStore.edit {
+                it[MIN_FREQ] = min
+                it[MAX_FREQ] = max
+            }
+        }
+    }
+
+    fun updateTheme(mode: ThemeMode) {
+        themeMode = mode
+        viewModelScope.launch {
+            dataStore.edit { it[THEME_MODE] = mode.name }
+        }
+    }
+
+    fun resetToDefaults() {
+        slotCount = 3
+        minFreq = 20f
+        maxFreq = 400f
+        themeMode = ThemeMode.AUTO
+        val names = List(6) { "Position ${it + 1}" }
+        slotNames = names
+
+        viewModelScope.launch {
+            dataStore.edit { it.clear() }
+        }
+    }
 
     fun saveMeasurement(slotIndex: Int, value: Double) {
         currentSessionMeasurements[slotIndex] = value
@@ -91,8 +177,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         toneGenerator = ToneGenerator()
         setContent {
-            ToneGeneratorTheme {
-                val viewModel: AppViewModel = viewModel()
+            val viewModel: AppViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    return AppViewModel(dataStore) as T
+                }
+            })
+
+            val darkTheme = when (viewModel.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.AUTO -> isSystemInDarkTheme()
+            }
+
+            ToneGeneratorTheme(darkTheme = darkTheme) {
                 toneGenerator?.let { generator ->
                     AppNavigation(toneGenerator = generator, viewModel = viewModel)
                 }
@@ -126,16 +223,12 @@ class ToneGenerator {
     var measuredLevel by mutableDoubleStateOf(0.0)
 
     fun start(scope: CoroutineScope, context: Context) {
-        // If we are already playing and not trying to stop, do nothing.
         if (isPlaying && !isStopping) return
-
-        // If we were in the middle of a fade-out, cancel the stop and continue.
         if (isPlaying && isStopping) {
             isStopping = false
             return
         }
 
-        // Otherwise, start a fresh job.
         isPlaying = true
         isStopping = false
 
@@ -227,12 +320,10 @@ class ToneGenerator {
                                 buffer[i] = finalSample
                                 buffer[i + 1] = 0f
                             }
-
                             2 -> {
                                 buffer[i] = 0f
                                 buffer[i + 1] = finalSample
                             }
-
                             else -> {
                                 buffer[i] = finalSample
                                 buffer[i + 1] = finalSample
@@ -285,7 +376,6 @@ class ToneGenerator {
                     if (read > 0) {
                         val magSq = calculateGoertzel(buffer, read, frequency)
                         val mag = sqrt(magSq)
-                        // Heuristic normalization for UI
                         val normalized = (mag / (read / 2.0)).coerceIn(0.0, 1.0)
                         measuredLevel = normalized
                     }
@@ -296,7 +386,6 @@ class ToneGenerator {
                 measuredLevel = 0.0
             }
         } catch (_: SecurityException) {
-            // Permission might have been revoked
             measuredLevel = 0.0
         }
     }
@@ -352,7 +441,8 @@ fun AppNavigation(toneGenerator: ToneGenerator, viewModel: AppViewModel) {
     val drawerItems = listOf(
         DrawerItem("Generator", "generator", Icons.Default.Menu),
         DrawerItem("Results", "results", Icons.Default.History),
-        DrawerItem("Settings", "settings", Icons.Default.Settings)
+        DrawerItem("Settings", "settings", Icons.Default.Settings),
+        DrawerItem("About", "about", Icons.Default.Info)
     )
 
     ModalNavigationDrawer(
@@ -404,6 +494,9 @@ fun AppNavigation(toneGenerator: ToneGenerator, viewModel: AppViewModel) {
                 }
                 composable("settings") {
                     SettingsScreen(viewModel = viewModel)
+                }
+                composable("about") {
+                    AboutScreen()
                 }
             }
         }
@@ -463,16 +556,54 @@ fun SettingsScreen(viewModel: AppViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .padding(bottom = 32.dp),
+            .padding(bottom = 32.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text("Number of Slots: ${viewModel.slotCount}")
+        Text("Theme Mode", fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ThemeMode.entries.forEach { mode ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(
+                        selected = viewModel.themeMode == mode,
+                        onClick = { viewModel.updateTheme(mode) }
+                    )
+                    Text(mode.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() })
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Frequency Range (Hz)", fontWeight = FontWeight.SemiBold)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = viewModel.minFreq.toString(),
+                onValueChange = { val f = it.toFloatOrNull(); if (f != null) viewModel.updateFreqRange(f, viewModel.maxFreq) },
+                label = { Text("Min") },
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = viewModel.maxFreq.toString(),
+                onValueChange = { val f = it.toFloatOrNull(); if (f != null) viewModel.updateFreqRange(viewModel.minFreq, f) },
+                label = { Text("Max") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Number of Slots: ${viewModel.slotCount}", fontWeight = FontWeight.SemiBold)
         Slider(
             value = viewModel.slotCount.toFloat(),
-            onValueChange = { viewModel.slotCount = it.toInt() },
+            onValueChange = { viewModel.updateSlotCount(it.toInt()) },
             valueRange = 1f..6f,
             steps = 4,
             modifier = Modifier.fillMaxWidth()
@@ -482,22 +613,50 @@ fun SettingsScreen(viewModel: AppViewModel) {
         Text("Slot Names:", fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(8.dp))
 
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-            for (i in 0 until viewModel.slotCount) {
-                OutlinedTextField(
-                    value = viewModel.slotNames[i],
-                    onValueChange = { newName ->
-                        val newList = viewModel.slotNames.toMutableList()
-                        newList[i] = newName
-                        viewModel.slotNames = newList
-                    },
-                    label = { Text("Slot ${i + 1} Name") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                )
-            }
+        for (i in 0 until viewModel.slotCount) {
+            OutlinedTextField(
+                value = viewModel.slotNames[i],
+                onValueChange = { viewModel.updateSlotName(i, it) },
+                label = { Text("Slot ${i + 1} Name") },
+                maxLines = 1,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
+            )
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = { viewModel.resetToDefaults() },
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text("Reset to Defaults")
+        }
+    }
+}
+
+@Composable
+fun AboutScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Tone Generator", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("Developer: Andreas Østrem Nielsen")
+        Text("GitHub: https://github.com/shard99/Tonegenerator")
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Version: 1.0.2")
+        Text("Date: May 2026")
+        Spacer(modifier = Modifier.height(32.dp))
+        Text(
+            "A precise tool for debugging room acoustics and testing audio performance.",
+            textAlign = TextAlign.Center,
+            color = Color.Gray
+        )
     }
 }
 
@@ -506,8 +665,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
 fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, modifier: Modifier = Modifier) {
     var isPlaying by remember { mutableStateOf(false) }
     var frequency by remember { mutableFloatStateOf(100f) }
-    var overtoneCount by remember { mutableFloatStateOf(0f) }
-    var channelIndex by remember { mutableIntStateOf(1) } // Default: Both
+    var channelIndex by remember { mutableIntStateOf(1) }
     var showSlotPicker by remember { mutableStateOf(false) }
     var confirmationText by remember { mutableStateOf("") }
     var confirmationVisible by remember { mutableStateOf(false) }
@@ -517,7 +675,7 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
             confirmationVisible = true
             delay(1000)
             confirmationVisible = false
-            delay(500) // wait for fade out
+            delay(500)
             confirmationText = ""
         }
     }
@@ -529,14 +687,9 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
-    ) { isGranted ->
-        if (isGranted) {
-            toneGenerator.start(scope, context)
-            isPlaying = true
-        } else {
-            toneGenerator.start(scope, context)
-            isPlaying = true
-        }
+    ) { _ ->
+        toneGenerator.start(scope, context)
+        isPlaying = true
     }
 
     if (showSlotPicker) {
@@ -595,7 +748,7 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceEvenly,
         ) {
-            Text("Tone Generator", fontSize = 18.sp, color = Color.Gray)
+            // Title removed from here as per request
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FrequencyWheel(
@@ -605,13 +758,12 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                         frequency = it
                         toneGenerator.setFrequency(it.toDouble())
                     },
-                    range = 20f..500f,
+                    range = viewModel.minFreq..viewModel.maxFreq,
                     size = 240.dp,
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Measured Level Indicator
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
@@ -667,6 +819,8 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                 }
             }
 
+            // Overtone slider hidden but functionality preserved in ToneGenerator
+            /*
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Overtones: ${overtoneCount.toInt()}")
                 Slider(
@@ -681,14 +835,13 @@ fun ToneGeneratorScreen(toneGenerator: ToneGenerator, viewModel: AppViewModel, m
                 )
                 Text("Adds multiples of frequency (2x, 4x, etc.)", fontSize = 12.sp, color = Color.Gray)
             }
+            */
 
             Button(
                 onClick = {
                     if (isPlaying) {
                         toneGenerator.stop()
                         viewModel.finishSession(frequency.toDouble(), clipboardManager)
-                        overtoneCount = 0f
-                        toneGenerator.overtones = 0
                         isPlaying = false
                     } else {
                         if (ContextCompat.checkSelfPermission(
