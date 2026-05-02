@@ -35,6 +35,11 @@ fun FrequencyWheel(
         )
     }
 
+    // Snap State
+    var isSnapDisabledForTouch by remember { mutableStateOf(false) }
+    var snapStartTime by remember { mutableLongStateOf(0L) }
+    var lastSnappedValue by remember { mutableFloatStateOf(-1f) }
+
     LaunchedEffect(value, minFreq, maxFreq) {
         val targetAngle = (ln(value / minFreq) / ln(maxFreq / minFreq) * 360f).coerceIn(0f, 360f)
         if (abs(targetAngle - angle) > 0.5f) {
@@ -57,9 +62,20 @@ fun FrequencyWheel(
                             val touchVector = offset - center
                             previousTouchAngle =
                                 atan2(touchVector.y, touchVector.x) * (180f / PI.toFloat())
+
+                            // Reset snap state for new touch
+                            isSnapDisabledForTouch = false
+                            snapStartTime = 0L
+                            lastSnappedValue = -1f
                         },
-                        onDragEnd = { previousTouchAngle = null },
-                        onDragCancel = { previousTouchAngle = null },
+                        onDragEnd = {
+                            previousTouchAngle = null
+                            snapStartTime = 0L
+                        },
+                        onDragCancel = {
+                            previousTouchAngle = null
+                            snapStartTime = 0L
+                        },
                         onDrag = { change, _ ->
                             change.consume()
                             val touchVector = change.position - center
@@ -74,10 +90,43 @@ fun FrequencyWheel(
                                 angle = (angle + delta).coerceIn(0f, 360f)
 
                                 val t = angle / 360f
-                                val newValue =
+                                val rawValue =
                                     minFreq * (maxFreq / minFreq).toDouble().pow(t.toDouble())
                                         .toFloat()
-                                onValueChange(newValue)
+
+                                var finalValue = rawValue
+
+                                if (!isSnapDisabledForTouch) {
+                                    // Calculate major step based on magnitude
+                                    val magnitude = 10.0.pow(floor(log10(rawValue.toDouble()))).toFloat()
+                                    val step = if (rawValue < 100) 10f else magnitude
+
+                                    val snapTarget = (round(rawValue / step) * step)
+                                    val snapThreshold = step * 0.3f // +/- 20% of step
+
+                                    if (abs(rawValue - snapTarget) <= snapThreshold) {
+                                        // We are in a snap zone
+                                        finalValue = snapTarget
+
+                                        if (lastSnappedValue != snapTarget) {
+                                            // Just entered this specific snap target
+                                            snapStartTime = System.currentTimeMillis()
+                                            lastSnappedValue = snapTarget
+                                        } else {
+                                            // Holding on same snap target
+                                            val elapsed = System.currentTimeMillis() - snapStartTime
+                                            if (snapStartTime > 0 && elapsed > 2000) {
+                                                isSnapDisabledForTouch = true
+                                            }
+                                        }
+                                    } else {
+                                        // Outside snap zone
+                                        snapStartTime = 0L
+                                        lastSnappedValue = -1f
+                                    }
+                                }
+
+                                onValueChange(finalValue)
                             }
                             previousTouchAngle = currentTouchAngle
                         },
