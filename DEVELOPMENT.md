@@ -12,6 +12,15 @@ This document tracks architectural decisions and best practices to maintain code
 
 ## Kotlin Best Practices
 - **Rule**: Use anonymous names (`_`) for unused parameters in lambdas and unused exception names in `catch` blocks to improve code clarity.
+- **Formatting**: The project uses **ktlint** for code style enforcement.
+    - Use `./gradlew ktlintFormat` to automatically fix formatting issues.
+    - Use `./gradlew ktlintCheck` to verify that the code conforms to the style.
+    - Formatting is enforced during the `check` task.
+    - **Local Automation**: Run `./gradlew addKtlintCheckGitPreCommitHook` to ensure your code is checked before every commit.
+
+## Continuous Integration (CI)
+- **Rule**: All merges to the `main` branch are gated by a GitHub Actions workflow.
+- **Checks**: The CI automatically runs `ktlintCheck` and a full build on every Push and Pull Request to `main`. If formatting fails, the merge is blocked.
 
 ## Clipboard Management
 - **Rule**: Avoid `androidx.compose.ui.platform.ClipboardManager` (deprecated).

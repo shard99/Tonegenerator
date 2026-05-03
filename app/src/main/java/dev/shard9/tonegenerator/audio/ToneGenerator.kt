@@ -21,231 +21,249 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class ToneGenerator {
-    private val sampleRate = 44100
-    private var audioTrack: AudioTrack? = null
-    private var audioRecord: AudioRecord? = null
+  private val sampleRate = 44100
+  private var audioTrack: AudioTrack? = null
+  private var audioRecord: AudioRecord? = null
 
-    @Volatile
-    private var isPlaying = false
+  @Volatile
+  private var isPlaying = false
 
-    @Volatile
-    private var isStopping = false
+  @Volatile
+  private var isStopping = false
 
-    private var frequency = 100.0
-    var overtones = 0
-    var channelSelection = 1 // 0: Left, 1: Both, 2: Right
-    private var job: Job? = null
-    private var recordJob: Job? = null
+  private var frequency = 100.0
+  var overtones = 0
+  var channelSelection = 1 // 0: Left, 1: Both, 2: Right
+  private var job: Job? = null
+  private var recordJob: Job? = null
 
-    var measuredLevel by mutableDoubleStateOf(0.0)
+  var measuredLevel by mutableDoubleStateOf(0.0)
 
-    fun start(scope: CoroutineScope, context: Context) {
-        if (isPlaying && !isStopping) return
-        if (isPlaying && isStopping) {
-            isStopping = false
-            return
-        }
-
-        isPlaying = true
-        isStopping = false
-
-        startPlayback(scope)
-        if (ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.RECORD_AUDIO,
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            startRecording(scope)
-        }
+  fun start(
+    scope: CoroutineScope,
+    context: Context,
+  ) {
+    if (isPlaying && !isStopping) return
+    if (isPlaying && isStopping) {
+      isStopping = false
+      return
     }
 
-    private fun startPlayback(scope: CoroutineScope) {
-        val bufferSize = AudioTrack.getMinBufferSize(
-            sampleRate,
-            AudioFormat.CHANNEL_OUT_STEREO,
-            AudioFormat.ENCODING_PCM_FLOAT,
-        )
+    isPlaying = true
+    isStopping = false
 
-        audioTrack = AudioTrack.Builder()
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
-                    .setSampleRate(sampleRate)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                    .build(),
-            )
-            .setBufferSizeInBytes(bufferSize)
-            .setTransferMode(AudioTrack.MODE_STREAM)
-            .build()
-
-        audioTrack?.play()
-
-        job = scope.launch(Dispatchers.Default) {
-            var phase = 0.0
-
-            val numSamples = (bufferSize / 4) and -2
-            val buffer = FloatArray(numSamples)
-
-            val fadeInSamples = sampleRate // 1 second
-            val fadeOutLimit = (sampleRate * 0.1).toInt() // 20ms
-
-            var samplesProcessed = 0
-            var fadeOutSamples = 0
-
-            try {
-                while (isPlaying) {
-                    val currentFreq = frequency
-                    val currentOvertones = overtones
-                    val currentChannel = channelSelection
-
-                    val activeHarmonics = (0..currentOvertones).filter { k ->
-                        (currentFreq * 2.0.pow(k)) <= 20000.0
-                    }
-                    val gain = if (activeHarmonics.isEmpty()) 0f else 1.0f / activeHarmonics.size
-
-                    for (i in 0 until buffer.size step 2) {
-                        val fadeInVolume = if (samplesProcessed < fadeInSamples) {
-                            samplesProcessed.toFloat() / fadeInSamples
-                        } else {
-                            1.0f
-                        }
-
-                        val fadeOutVolume = if (isStopping) {
-                            val v = 1.0f - (fadeOutSamples.toFloat() / fadeOutLimit)
-                            fadeOutSamples++
-                            v.coerceIn(0f, 1f)
-                        } else {
-                            fadeOutSamples = 0
-                            1.0f
-                        }
-
-                        if (isStopping && (fadeOutVolume <= 0f)) {
-                            isPlaying = false
-                        }
-
-                        val combinedVolume = fadeInVolume * fadeOutVolume
-
-                        var sampleValue = 0.0
-                        for (k in activeHarmonics) {
-                            sampleValue += sin(phase * (2.0.pow(k)))
-                        }
-
-                        val finalSample = (sampleValue * gain * combinedVolume).toFloat()
-
-                        when (currentChannel) {
-                            0 -> {
-                                buffer[i] = finalSample
-                                buffer[i + 1] = 0f
-                            }
-
-                            2 -> {
-                                buffer[i] = 0f
-                                buffer[i + 1] = finalSample
-                            }
-
-                            else -> {
-                                buffer[i] = finalSample
-                                buffer[i + 1] = finalSample
-                            }
-                        }
-
-                        phase += 2.0 * PI * currentFreq / sampleRate
-                        if (phase > 2.0 * PI) phase -= 2.0 * PI
-                        samplesProcessed++
-                    }
-                    audioTrack?.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING)
-                }
-            } finally {
-                audioTrack?.stop()
-                audioTrack?.flush()
-                audioTrack?.release()
-                audioTrack = null
-                isPlaying = false
-                isStopping = false
-            }
-        }
+    startPlayback(scope)
+    if (ContextCompat.checkSelfPermission(
+        context,
+        android.Manifest.permission.RECORD_AUDIO,
+      ) == PackageManager.PERMISSION_GRANTED
+    ) {
+      startRecording(scope)
     }
+  }
 
-    private fun startRecording(scope: CoroutineScope) {
-        val bufferSize = AudioRecord.getMinBufferSize(
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_FLOAT,
-        )
+  private fun startPlayback(scope: CoroutineScope) {
+    val bufferSize =
+      AudioTrack.getMinBufferSize(
+        sampleRate,
+        AudioFormat.CHANNEL_OUT_STEREO,
+        AudioFormat.ENCODING_PCM_FLOAT,
+      )
+
+    audioTrack =
+      AudioTrack
+        .Builder()
+        .setAudioFormat(
+          AudioFormat
+            .Builder()
+            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+            .setSampleRate(sampleRate)
+            .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+            .build(),
+        ).setBufferSizeInBytes(bufferSize)
+        .setTransferMode(AudioTrack.MODE_STREAM)
+        .build()
+
+    audioTrack?.play()
+
+    job =
+      scope.launch(Dispatchers.Default) {
+        var phase = 0.0
+
+        val numSamples = (bufferSize / 4) and -2
+        val buffer = FloatArray(numSamples)
+
+        val fadeInSamples = sampleRate // 1 second
+        val fadeOutLimit = (sampleRate * 0.1).toInt() // 20ms
+
+        var samplesProcessed = 0
+        var fadeOutSamples = 0
 
         try {
-            audioRecord = AudioRecord.Builder()
-                .setAudioSource(MediaRecorder.AudioSource.MIC)
-                .setAudioFormat(
-                    AudioFormat.Builder()
-                        .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
-                        .setSampleRate(sampleRate)
-                        .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
-                        .build(),
-                )
-                .setBufferSizeInBytes(bufferSize)
-                .build()
+          while (isPlaying) {
+            val currentFreq = frequency
+            val currentOvertones = overtones
+            val currentChannel = channelSelection
 
-            audioRecord?.startRecording()
+            val activeHarmonics =
+              (0..currentOvertones).filter { k ->
+                (currentFreq * 2.0.pow(k)) <= 20000.0
+              }
+            val gain = if (activeHarmonics.isEmpty()) 0f else 1.0f / activeHarmonics.size
 
-            recordJob = scope.launch(Dispatchers.Default) {
-                val buffer = FloatArray(bufferSize / 4)
-                while (isPlaying) {
-                    val read = audioRecord?.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING) ?: 0
-                    if (read > 0) {
-                        val magSq = calculateGoertzel(buffer, read, frequency)
-                        val mag = sqrt(magSq)
-                        // The last * 1.5 here is just to get larger differences since
-                        // we do not need the top end (I hope)
-                        val normalized = ((mag / (read / 2.0)) * 2.0).coerceIn(0.0, 1.0)
-                        measuredLevel = normalized
-                    }
+            for (i in 0 until buffer.size step 2) {
+              val fadeInVolume =
+                if (samplesProcessed < fadeInSamples) {
+                  samplesProcessed.toFloat() / fadeInSamples
+                } else {
+                  1.0f
                 }
-                audioRecord?.stop()
-                audioRecord?.release()
-                audioRecord = null
-                measuredLevel = 0.0
+
+              val fadeOutVolume =
+                if (isStopping) {
+                  val v = 1.0f - (fadeOutSamples.toFloat() / fadeOutLimit)
+                  fadeOutSamples++
+                  v.coerceIn(0f, 1f)
+                } else {
+                  fadeOutSamples = 0
+                  1.0f
+                }
+
+              if (isStopping && (fadeOutVolume <= 0f)) {
+                isPlaying = false
+              }
+
+              val combinedVolume = fadeInVolume * fadeOutVolume
+
+              var sampleValue = 0.0
+              for (k in activeHarmonics) {
+                sampleValue += sin(phase * (2.0.pow(k)))
+              }
+
+              val finalSample = (sampleValue * gain * combinedVolume).toFloat()
+
+              when (currentChannel) {
+                0 -> {
+                  buffer[i] = finalSample
+                  buffer[i + 1] = 0f
+                }
+
+                2 -> {
+                  buffer[i] = 0f
+                  buffer[i + 1] = finalSample
+                }
+
+                else -> {
+                  buffer[i] = finalSample
+                  buffer[i + 1] = finalSample
+                }
+              }
+
+              phase += 2.0 * PI * currentFreq / sampleRate
+              if (phase > 2.0 * PI) phase -= 2.0 * PI
+              samplesProcessed++
             }
-        } catch (_: SecurityException) {
-            measuredLevel = 0.0
+            audioTrack?.write(buffer, 0, buffer.size, AudioTrack.WRITE_BLOCKING)
+          }
+        } finally {
+          audioTrack?.stop()
+          audioTrack?.flush()
+          audioTrack?.release()
+          audioTrack = null
+          isPlaying = false
+          isStopping = false
         }
-    }
+      }
+  }
 
-    private fun calculateGoertzel(samples: FloatArray, len: Int, targetFreq: Double): Double {
-        val omega = 2.0 * PI * targetFreq / sampleRate
-        val cosine = cos(omega)
-        val coeff = 2.0 * cosine
+  private fun startRecording(scope: CoroutineScope) {
+    val bufferSize =
+      AudioRecord.getMinBufferSize(
+        sampleRate,
+        AudioFormat.CHANNEL_IN_MONO,
+        AudioFormat.ENCODING_PCM_FLOAT,
+      )
 
-        var q0: Double
-        var q1 = 0.0
-        var q2 = 0.0
+    try {
+      audioRecord =
+        AudioRecord
+          .Builder()
+          .setAudioSource(MediaRecorder.AudioSource.MIC)
+          .setAudioFormat(
+            AudioFormat
+              .Builder()
+              .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+              .setSampleRate(sampleRate)
+              .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+              .build(),
+          ).setBufferSizeInBytes(bufferSize)
+          .build()
 
-        for (i in 0 until len) {
-            q0 = coeff * q1 - q2 + samples[i]
-            q2 = q1
-            q1 = q0
+      audioRecord?.startRecording()
+
+      recordJob =
+        scope.launch(Dispatchers.Default) {
+          val buffer = FloatArray(bufferSize / 4)
+          while (isPlaying) {
+            val read = audioRecord?.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING) ?: 0
+            if (read > 0) {
+              val magSq = calculateGoertzel(buffer, read, frequency)
+              val mag = sqrt(magSq)
+              // The last * 1.5 here is just to get larger differences since
+              // we do not need the top end (I hope)
+              val normalized = ((mag / (read / 2.0)) * 2.0).coerceIn(0.0, 1.0)
+              measuredLevel = normalized
+            }
+          }
+          audioRecord?.stop()
+          audioRecord?.release()
+          audioRecord = null
+          measuredLevel = 0.0
         }
-        return q1 * q1 + q2 * q2 - q1 * q2 * coeff
+    } catch (_: SecurityException) {
+      measuredLevel = 0.0
     }
+  }
 
-    fun stop() {
-        if (isPlaying) {
-            isStopping = true
-        }
-    }
+  private fun calculateGoertzel(
+    samples: FloatArray,
+    len: Int,
+    targetFreq: Double,
+  ): Double {
+    val omega = 2.0 * PI * targetFreq / sampleRate
+    val cosine = cos(omega)
+    val coeff = 2.0 * cosine
 
-    fun release() {
-        isPlaying = false
-        isStopping = false
-        job?.cancel()
-        recordJob?.cancel()
-        audioTrack?.release()
-        audioTrack = null
-        audioRecord?.release()
-        audioRecord = null
-    }
+    var q0: Double
+    var q1 = 0.0
+    var q2 = 0.0
 
-    fun setFrequency(freq: Double) {
-        frequency = freq
+    for (i in 0 until len) {
+      q0 = coeff * q1 - q2 + samples[i]
+      q2 = q1
+      q1 = q0
     }
+    return q1 * q1 + q2 * q2 - q1 * q2 * coeff
+  }
+
+  fun stop() {
+    if (isPlaying) {
+      isStopping = true
+    }
+  }
+
+  fun release() {
+    isPlaying = false
+    isStopping = false
+    job?.cancel()
+    recordJob?.cancel()
+    audioTrack?.release()
+    audioTrack = null
+    audioRecord?.release()
+    audioRecord = null
+  }
+
+  fun setFrequency(freq: Double) {
+    frequency = freq
+  }
 }

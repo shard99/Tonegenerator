@@ -27,59 +27,61 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ResultsScreen(viewModel: AppViewModel) {
-    val clipboard = LocalClipboard.current
-    val scope = rememberCoroutineScope()
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Results History", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
+  val clipboard = LocalClipboard.current
+  val scope = rememberCoroutineScope()
+  Column(
+    modifier =
+      Modifier
+        .fillMaxSize()
+        .padding(16.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+  ) {
+    Text("Results History", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Spacer(modifier = Modifier.height(16.dp))
 
-        if (viewModel.history.isEmpty()) {
-            Text("No results yet", color = Color.Gray)
-        } else {
-            viewModel.history.forEach { line ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Text(
-                        text = line,
-                        modifier = Modifier.padding(16.dp),
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Start
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {
-                    val header = viewModel.getCSVHeader()
-                    val allText = viewModel.history.joinToString("\n")
-                    val csvData = "$header\n$allText"
-                    scope.launch {
-                        clipboard.setClipEntry(ClipData.newPlainText("Tone History", csvData).toClipEntry())
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Copy All to Clipboard")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            OutlinedButton(
-                onClick = { viewModel.clearHistory() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Clear history")
-            }
+    if (viewModel.history.isEmpty()) {
+      Text("No results yet", color = Color.Gray)
+    } else {
+      viewModel.history.forEach { line ->
+        Card(
+          modifier =
+            Modifier
+              .fillMaxWidth()
+              .padding(vertical = 4.dp),
+        ) {
+          Text(
+            text = line,
+            modifier = Modifier.padding(16.dp),
+            fontSize = 14.sp,
+            textAlign = TextAlign.Start,
+          )
         }
+      }
+
+      Spacer(modifier = Modifier.weight(1f))
+
+      Button(
+        onClick = {
+          val header = viewModel.getCSVHeader()
+          val allText = viewModel.history.joinToString("\n")
+          val csvData = "$header\n$allText"
+          scope.launch {
+            clipboard.setClipEntry(ClipData.newPlainText("Tone History", csvData).toClipEntry())
+          }
+        },
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text("Copy All to Clipboard")
+      }
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      OutlinedButton(
+        onClick = { viewModel.clearHistory() },
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text("Clear history")
+      }
     }
+  }
 }

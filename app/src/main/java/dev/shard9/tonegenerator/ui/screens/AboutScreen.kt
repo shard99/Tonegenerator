@@ -17,28 +17,28 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shard9.tonegenerator.BuildConfig
 
-
 @Composable
 fun AboutScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text("LF Tonegen", fontSize = 28.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        Text("Developer: Andreas Østrem Nielsen")
-        Text("github.com/shard99/Tonegenerator")
-        Spacer(modifier = Modifier.height(24.dp))
-        Text("Version: ${BuildConfig.VERSION_NAME}")
-        Text("Date: ${BuildConfig.BUILD_DATE}")
-        Spacer(modifier = Modifier.height(32.dp))
-        Text(
-            "A precise tool for debugging low frequency room acoustics.",
-            textAlign = TextAlign.Center,
-            color = Color.Gray,
-        )
-    }
+  Column(
+    modifier =
+      Modifier
+        .fillMaxSize()
+        .padding(24.dp),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.Center,
+  ) {
+    Text("LF Tonegen", fontSize = 28.sp, fontWeight = FontWeight.Bold)
+    Spacer(modifier = Modifier.height(16.dp))
+    Text("Developer: Andreas Østrem Nielsen")
+    Text("github.com/shard99/Tonegenerator")
+    Spacer(modifier = Modifier.height(24.dp))
+    Text("Version: ${BuildConfig.VERSION_NAME}")
+    Text("Date: ${BuildConfig.BUILD_DATE}")
+    Spacer(modifier = Modifier.height(32.dp))
+    Text(
+      "A precise tool for debugging low frequency room acoustics.",
+      textAlign = TextAlign.Center,
+      color = Color.Gray,
+    )
+  }
 }

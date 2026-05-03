@@ -1,24 +1,17 @@
-# top-most .editorconfig file, not written by me...
+# http://editorconfig.org
 root = true
 
-# Global Settings: Apply to all file types in the project ✨
 [*]
-end_of_line = lf # Use Unix-style line endings (LF)
-insert_final_newline = true # Ensure a newline character at the end of every file
-trim_trailing_whitespace = true # Remove trailing whitespace on lines
-charset = utf-8 # Use UTF-8 encoding for all files
+charset = utf-8
+end_of_line = lf
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+max_line_length = 120
+trim_trailing_whitespace = true
 
-# Kotlin-Specific Settings: Tailored for .kt and .kts files 📏
 [*.{kt,kts}]
-indent_size = 4 # Standard Kotlin indentation is 4 spaces
-indent_style = space # Use spaces for indentation
-
-# Max Line Length: Adhering to Android Kotlin Style Guide (often 100 or 120) ✍️
-max_line_length = 120 # The hard limit for line length
-
-# Trailing Commas: Highly Recommended for Clean Diffs and Reordering! 👍
-# Set to 'true' to allow/encourage trailing commas in declarations and call sites.
-# If you *really* want to remove them, set these to 'false'.
+ktlint_code_style = ktlint_official
+ktlint_standard_function-naming = disabled
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
-

@@ -20,38 +20,43 @@ val Context.dataStore by preferencesDataStore(name = "settings")
 enum class ThemeMode { LIGHT, DARK, AUTO }
 
 class MainActivity : ComponentActivity() {
-    private var toneGenerator: ToneGenerator? = null
+  private var toneGenerator: ToneGenerator? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        toneGenerator = ToneGenerator()
-        val repository = SettingsRepository(dataStore)
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    enableEdgeToEdge()
+    toneGenerator = ToneGenerator()
+    val repository = SettingsRepository(dataStore)
 
-        setContent {
-            val viewModel: AppViewModel = viewModel(factory = object : androidx.lifecycle.ViewModelProvider.Factory {
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    @Suppress("UNCHECKED_CAST")
-                    return AppViewModel(repository) as T
-                }
-            })
+    setContent {
+      val viewModel: AppViewModel =
+        viewModel(
+          factory =
+            object : androidx.lifecycle.ViewModelProvider.Factory {
+              override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return AppViewModel(repository) as T
+              }
+            },
+        )
 
-            val darkTheme = when (viewModel.themeMode) {
-                ThemeMode.LIGHT -> false
-                ThemeMode.DARK -> true
-                ThemeMode.AUTO -> isSystemInDarkTheme()
-            }
-
-            LFTonegenTheme(darkTheme = darkTheme) {
-                toneGenerator?.let { generator ->
-                    AppNavigation(toneGenerator = generator, viewModel = viewModel)
-                }
-            }
+      val darkTheme =
+        when (viewModel.themeMode) {
+          ThemeMode.LIGHT -> false
+          ThemeMode.DARK -> true
+          ThemeMode.AUTO -> isSystemInDarkTheme()
         }
-    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        toneGenerator?.release()
+      LFTonegenTheme(darkTheme = darkTheme) {
+        toneGenerator?.let { generator ->
+          AppNavigation(toneGenerator = generator, viewModel = viewModel)
+        }
+      }
     }
+  }
+
+  override fun onDestroy() {
+    super.onDestroy()
+    toneGenerator?.release()
+  }
 }

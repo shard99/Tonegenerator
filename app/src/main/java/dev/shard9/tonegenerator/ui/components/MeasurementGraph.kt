@@ -14,59 +14,61 @@ import dev.shard9.tonegenerator.viewmodel.AppViewModel
 
 @Composable
 fun MeasurementGraph(
-    dataPoints: List<AppViewModel.DataPoint>,
-    startTime: Long,
-    durationSeconds: Int,
-    modifier: Modifier = Modifier,
+  dataPoints: List<AppViewModel.DataPoint>,
+  startTime: Long,
+  durationSeconds: Int,
+  modifier: Modifier = Modifier,
 ) {
-    val currentTime = System.currentTimeMillis()
-    val maxVal = dataPoints.maxOfOrNull { it.value } ?: 0.0
-    val yMax = if (maxVal > 0) maxVal / 0.9 else 1.0
+  val currentTime = System.currentTimeMillis()
+  val maxVal = dataPoints.maxOfOrNull { it.value } ?: 0.0
+  val yMax = if (maxVal > 0) maxVal / 0.9 else 1.0
 
-    // Window duration from settings
-    val windowDuration = durationSeconds * 1000L
+  // Window duration from settings
+  val windowDuration = durationSeconds * 1000L
 
-    // Determine time range to show
-    val displayEndTime = if (currentTime - startTime < windowDuration) {
-        startTime + windowDuration
+  // Determine time range to show
+  val displayEndTime =
+    if (currentTime - startTime < windowDuration) {
+      startTime + windowDuration
     } else {
-        currentTime
+      currentTime
     }
-    val displayStartTime = displayEndTime - windowDuration
+  val displayStartTime = displayEndTime - windowDuration
 
-    Canvas(
-        modifier = modifier
-            .background(Color.Gray.copy(alpha = 0.05f))
-            .border(1.dp, Color.LightGray.copy(alpha = 0.5f)),
-    ) {
-        if (dataPoints.size < 2) return@Canvas
+  Canvas(
+    modifier =
+      modifier
+        .background(Color.Gray.copy(alpha = 0.05f))
+        .border(1.dp, Color.LightGray.copy(alpha = 0.5f)),
+  ) {
+    if (dataPoints.size < 2) return@Canvas
 
-        val path = Path()
-        var started = false
+    val path = Path()
+    var started = false
 
-        dataPoints.forEach { point ->
-            if (point.timestamp < displayStartTime) return@forEach
+    dataPoints.forEach { point ->
+      if (point.timestamp < displayStartTime) return@forEach
 
-            // X coordinate: normalized time in window
-            val xFraction = (point.timestamp - displayStartTime).toFloat() / windowDuration
-            val xPos = xFraction * size.width
+      // X coordinate: normalized time in window
+      val xFraction = (point.timestamp - displayStartTime).toFloat() / windowDuration
+      val xPos = xFraction * size.width
 
-            // Y coordinate: inverted because (0,0) is top-left
-            val yFraction = (point.value / yMax).toFloat()
-            val yPos = size.height - (yFraction * size.height)
+      // Y coordinate: inverted because (0,0) is top-left
+      val yFraction = (point.value / yMax).toFloat()
+      val yPos = size.height - (yFraction * size.height)
 
-            if (!started) {
-                path.moveTo(xPos, yPos)
-                started = true
-            } else {
-                path.lineTo(xPos, yPos)
-            }
-        }
-
-        drawPath(
-            path = path,
-            color = GreenX,
-            style = Stroke(width = 2.dp.toPx()),
-        )
+      if (!started) {
+        path.moveTo(xPos, yPos)
+        started = true
+      } else {
+        path.lineTo(xPos, yPos)
+      }
     }
+
+    drawPath(
+      path = path,
+      color = GreenX,
+      style = Stroke(width = 2.dp.toPx()),
+    )
+  }
 }
