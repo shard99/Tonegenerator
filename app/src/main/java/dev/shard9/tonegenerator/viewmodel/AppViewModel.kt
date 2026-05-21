@@ -22,7 +22,6 @@ import kotlin.math.roundToInt
 class AppViewModel(
   private val repository: SettingsRepository,
   private val bleManager: BleManager,
-  private val bleManager: BleManager,
 ) : ViewModel() {
   var positionCount by mutableIntStateOf(3)
     private set
@@ -37,12 +36,6 @@ class AppViewModel(
   var graphDuration by mutableIntStateOf(3)
     private set
   var graphSmoothing by mutableIntStateOf(3)
-    private set
-  var useRemoteGenerator by mutableStateOf(false)
-    private set
-  var localVolume by mutableIntStateOf(50)
-    private set
-  var remoteVolume by mutableIntStateOf(0)
     private set
   var useRemoteGenerator by mutableStateOf(false)
     private set
@@ -83,13 +76,6 @@ class AppViewModel(
         themeMode = settings.themeMode
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
-        useRemoteGenerator = settings.useRemoteGenerator
-        localVolume = settings.localVolume
-        remoteVolume = settings.remoteVolume
-
-        if (useRemoteGenerator && !bleManager.isConnected) {
-          bleManager.startScanning()
-        }
         useRemoteGenerator = settings.useRemoteGenerator
         localVolume = settings.localVolume
         remoteVolume = settings.remoteVolume
@@ -139,21 +125,15 @@ class AppViewModel(
     if (useRemoteGenerator && bleManager.isConnected) {
       bleManager.writeFrequency(freq)
     }
-    if (useRemoteGenerator && bleManager.isConnected) {
-      bleManager.writeFrequency(freq)
-    }
   }
 
   fun updatePlayingState(playing: Boolean) {
     isPlaying = playing
     if (playing) {
       sessionStartTime = System.currentTimeMillis()
-      graphData.clear()
-      smoothingBuffer.clear()
-    } else {
-      graphData.clear()
-      smoothingBuffer.clear()
     }
+    graphData.clear()
+    smoothingBuffer.clear()
   }
 
   fun addGraphPoint(value: Double) {
@@ -299,7 +279,7 @@ class AppViewModel(
 
     val resultString = result.toString()
     history.add(0, resultString)
-    while (history.size > positionCount) {
+    while (history.size > 50) {
       history.removeAt(history.size - 1)
     }
 

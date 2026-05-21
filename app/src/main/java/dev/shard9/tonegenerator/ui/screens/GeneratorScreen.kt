@@ -9,6 +9,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -37,6 +39,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,6 +60,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
 import dev.shard9.tonegenerator.ui.components.MeasurementGraph
@@ -184,6 +188,70 @@ fun GeneratorScreen(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.SpaceEvenly,
     ) {
+      // Generator Toggle
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text(
+          "Phone",
+          fontWeight = if (!viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
+        )
+        Switch(
+          checked = viewModel.useRemoteGenerator,
+          onCheckedChange = { useRemote ->
+            if (useRemote) {
+              val permissions =
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                  arrayOf(
+                    android.Manifest.permission.BLUETOOTH_SCAN,
+                    android.Manifest.permission.BLUETOOTH_CONNECT,
+                  )
+                } else {
+                  arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+
+              val missing =
+                permissions.filter {
+                  ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                }
+
+              if (missing.isEmpty()) {
+                viewModel.updateUseRemoteGenerator(true)
+              } else {
+                blePermissionLauncher.launch(missing.toTypedArray())
+              }
+            } else {
+              viewModel.updateUseRemoteGenerator(false)
+            }
+          },
+          modifier = Modifier.padding(horizontal = 8.dp),
+        )
+        Text(
+          "Remote",
+          fontWeight = if (viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
+        )
+
+        if (viewModel.useRemoteGenerator) {
+          Spacer(modifier = Modifier.width(16.dp))
+          val statusColor =
+            when (viewModel.bleStatus) {
+              BleManager.Status.DISCONNECTED -> Color.Gray
+              BleManager.Status.CONNECTING -> Color.Yellow
+              BleManager.Status.CONNECTED -> Color.Blue
+              BleManager.Status.SYNCED -> GreenX
+              BleManager.Status.ERROR -> Color.Red
+            }
+          Box(
+            modifier =
+              Modifier
+                .size(12.dp)
+                .background(statusColor, CircleShape),
+          )
+        }
+      }
+
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FrequencyWheel(
           value = viewModel.selectedFrequency,

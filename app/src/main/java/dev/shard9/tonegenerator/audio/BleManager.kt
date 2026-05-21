@@ -21,7 +21,6 @@ private const val TAG = "BleManager"
 private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
 private val FREQ_CHAR_UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
 private val VOL_CHAR_UUID = UUID.fromString("8a7f14b6-7eb4-45fb-8120-6d45904f8e22")
-private val PLAY_CHAR_UUID = UUID.fromString("c82b0f41-aef4-44bc-a0a3-c59124430e7a")
 
 @SuppressLint("MissingPermission")
 class BleManager(
@@ -40,7 +39,6 @@ class BleManager(
   private var bluetoothGatt: BluetoothGatt? = null
   private var freqCharacteristic: BluetoothGattCharacteristic? = null
   private var volCharacteristic: BluetoothGattCharacteristic? = null
-  private var playCharacteristic: BluetoothGattCharacteristic? = null
 
   var isConnected = false
     private set
@@ -88,10 +86,12 @@ class BleManager(
         if (newState == BluetoothProfile.STATE_CONNECTED) {
           Log.d(TAG, "Connected to GATT server.")
           this@BleManager.status = Status.CONNECTED
+          isConnected = true
           gatt.discoverServices()
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
           Log.d(TAG, "Disconnected from GATT server.")
           this@BleManager.status = Status.DISCONNECTED
+          isConnected = false
           freqCharacteristic = null
           volCharacteristic = null
         }
@@ -168,5 +168,6 @@ class BleManager(
     bluetoothGatt?.close()
     bluetoothGatt = null
     status = Status.DISCONNECTED
+    isConnected = false
   }
 }
