@@ -21,6 +21,7 @@ private const val TAG = "BleManager"
 private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
 private val FREQ_CHAR_UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
 private val VOL_CHAR_UUID = UUID.fromString("8a7f14b6-7eb4-45fb-8120-6d45904f8e22")
+private val PLAY_CHAR_UUID = UUID.fromString("c82b0f41-aef4-44bc-a0a3-c59124430e7a")
 
 @SuppressLint("MissingPermission")
 class BleManager(
@@ -39,12 +40,13 @@ class BleManager(
   private var bluetoothGatt: BluetoothGatt? = null
   private var freqCharacteristic: BluetoothGattCharacteristic? = null
   private var volCharacteristic: BluetoothGattCharacteristic? = null
+  private var playCharacteristic: BluetoothGattCharacteristic? = null
 
   var isConnected = false
     private set
 
   fun startScanning() {
-    if (bluetoothAdapter == null || !bluetoothAdapter!!.isEnabled) return
+    if (bluetoothAdapter == null || !(bluetoothAdapter!!.isEnabled)) return
 
     Log.d(TAG, "Starting BLE Scan...")
     status = Status.CONNECTING
@@ -94,6 +96,7 @@ class BleManager(
           isConnected = false
           freqCharacteristic = null
           volCharacteristic = null
+          playCharacteristic = null
         }
       }
 
@@ -106,6 +109,7 @@ class BleManager(
           if (service != null) {
             freqCharacteristic = service.getCharacteristic(FREQ_CHAR_UUID)
             volCharacteristic = service.getCharacteristic(VOL_CHAR_UUID)
+            playCharacteristic = service.getCharacteristic(PLAY_CHAR_UUID)
             Log.d(TAG, "Services discovered and characteristics acquired.")
             this@BleManager.status = Status.SYNCED
           }
@@ -118,9 +122,10 @@ class BleManager(
         status: Int,
       ) {
         if (status == BluetoothGatt.GATT_SUCCESS) {
+          Log.d(TAG, "Write success for: ${characteristic.uuid}")
           this@BleManager.status = Status.SYNCED
         } else {
-          Log.e(TAG, "Characteristic write failed: $status")
+          Log.e(TAG, "Characteristic write failed: $status for ${characteristic.uuid}")
           this@BleManager.status = Status.ERROR
         }
       }
@@ -130,18 +135,7 @@ class BleManager(
     val char = freqCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
     val data = freq.toString().toByteArray()
-
-    // Optimistically set to connected, wait for callback to set SYNCED
-    if (status != Status.ERROR) status = Status.CONNECTED
-
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-      gatt.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-    } else {
-      @Suppress("DEPRECATION")
-      char.value = data
-      @Suppress("DEPRECATION")
-      gatt.writeCharacteristic(char)
-    }
+    write(gatt, char, data)
   }
 
   fun writeVolume(volumePercent: Int) {
@@ -150,9 +144,22 @@ class BleManager(
     // Map 0-100% to 0-32767
     val amp = (volumePercent * 327.67f).toInt()
     val data = amp.toString().toByteArray()
+    write(gatt, char, data)
+  }
 
-    if (status != Status.ERROR) status = Status.CONNECTED
+  fun writePlayState(playing: Boolean) {
+    val char = playCharacteristic ?: return
+    val gatt = bluetoothGatt ?: return
+    val data = (if (playing) "1" else "0").toByteArray()
+    write(gatt, char, data)
+  }
 
+  private fun write(
+    gatt: BluetoothGatt,
+    char: BluetoothGattCharacteristic,
+    data: ByteArray,
+  ) {
+    Log.d(TAG, "Writing to ${char.uuid}: ${String(data)}")
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
       gatt.writeCharacteristic(char, data, BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
     } else {

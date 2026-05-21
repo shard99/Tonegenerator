@@ -15,6 +15,7 @@ import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.data.SettingsRepository
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -76,7 +77,6 @@ class AppViewModel(
         themeMode = settings.themeMode
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
-        useRemoteGenerator = settings.useRemoteGenerator
         localVolume = settings.localVolume
         remoteVolume = settings.remoteVolume
 
@@ -86,7 +86,7 @@ class AppViewModel(
 
         // Prune graph data if duration changed
         val now = System.currentTimeMillis()
-        while (graphData.isNotEmpty() && (now - graphData.first().timestamp) > (graphDuration * 1000L)) {
+        while (graphData.isNotEmpty() && ((now - graphData.first().timestamp) > (graphDuration * 1000L))) {
           graphData.removeAt(0)
         }
 
@@ -107,8 +107,43 @@ class AppViewModel(
           // Push current (likely reset) values to the newly connected companion
           bleManager.writeFrequency(selectedFrequency)
           bleManager.writeVolume(remoteVolume)
+          bleManager.writePlayState(isPlaying)
         }
       }
+    }
+
+    // Throttled BLE frequency updates (max 4/sec)
+    viewModelScope.launch {
+      snapshotFlow { selectedFrequency }
+        .conflate()
+        .collect { freq ->
+          if (useRemoteGenerator && bleManager.isConnected) {
+            bleManager.writeFrequency(freq)
+            delay(250)
+          }
+        }
+    }
+
+    // Throttled BLE volume updates (max 4/sec)
+    viewModelScope.launch {
+      snapshotFlow { remoteVolume }
+        .conflate()
+        .collect { volume ->
+          if (useRemoteGenerator && bleManager.isConnected) {
+            bleManager.writeVolume(volume)
+            delay(250)
+          }
+        }
+    }
+
+    // BLE play state updates
+    viewModelScope.launch {
+      snapshotFlow { isPlaying }
+        .collect { playing ->
+          if (useRemoteGenerator && bleManager.isConnected) {
+            bleManager.writePlayState(playing)
+          }
+        }
     }
   }
 
@@ -122,9 +157,6 @@ class AppViewModel(
 
   fun updateSelectedFrequency(freq: Float) {
     selectedFrequency = freq
-    if (useRemoteGenerator && bleManager.isConnected) {
-      bleManager.writeFrequency(freq)
-    }
   }
 
   fun updatePlayingState(playing: Boolean) {
@@ -194,7 +226,7 @@ class AppViewModel(
         delay(200) // Brief delay to ensure command is sent
       }
 
-      repository.updateUseRemoteGenerator(useRemote)
+      useRemoteGenerator = useRemote
 
       // 2. Safety reset logic for the current UI state
       updatePlayingState(false)
@@ -212,17 +244,16 @@ class AppViewModel(
   }
 
   fun updateLocalVolume(volume: Int) {
+    localVolume = volume
     viewModelScope.launch {
       repository.updateLocalVolume(volume)
     }
   }
 
   fun updateRemoteVolume(volume: Int) {
+    remoteVolume = volume
     viewModelScope.launch {
       repository.updateRemoteVolume(volume)
-      if (bleManager.isConnected) {
-        bleManager.writeVolume(volume)
-      }
     }
   }
 
@@ -269,7 +300,7 @@ class AppViewModel(
   ) {
     if (currentSessionMeasurements.isEmpty()) return
 
-    val result = StringBuilder("${frequency.roundToInt()}")
+    val result = StringBuilder(frequency.roundToInt().toString())
     for (i in 0 until positionCount) {
       currentSessionMeasurements[i]?.let { value ->
         val formattedValue = String.format(Locale.US, "%.1f", value)

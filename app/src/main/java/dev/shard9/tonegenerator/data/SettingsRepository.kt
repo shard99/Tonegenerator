@@ -2,7 +2,6 @@ package dev.shard9.tonegenerator.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -20,7 +19,6 @@ class SettingsRepository(
   private val themeModeKey = stringPreferencesKey("theme_mode")
   private val graphDurationKey = intPreferencesKey("graph_duration")
   private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
-  private val useRemoteGeneratorKey = booleanPreferencesKey("use_remote_generator")
   private val localVolumeKey = intPreferencesKey("local_volume")
   private val remoteVolumeKey = intPreferencesKey("remote_volume")
   private val positionNamesPrefix = "position_name_"
@@ -32,7 +30,6 @@ class SettingsRepository(
     val themeMode: ThemeMode,
     val graphDuration: Int,
     val graphSmoothing: Int,
-    val useRemoteGenerator: Boolean,
     val localVolume: Int,
     val remoteVolume: Int,
     val positionNames: List<String>,
@@ -61,7 +58,6 @@ class SettingsRepository(
       val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
       val graphDuration = prefs[graphDurationKey] ?: 3
       val graphSmoothing = prefs[graphSmoothingKey] ?: 3
-      val useRemoteGenerator = prefs[useRemoteGeneratorKey] ?: false
       val localVolume = prefs[localVolumeKey] ?: 50
       val remoteVolume = prefs[remoteVolumeKey] ?: 0
 
@@ -77,7 +73,6 @@ class SettingsRepository(
         themeMode = themeMode,
         graphDuration = graphDuration,
         graphSmoothing = graphSmoothing,
-        useRemoteGenerator = useRemoteGenerator,
         localVolume = localVolume,
         remoteVolume = remoteVolume,
         positionNames = positionNames,
@@ -115,10 +110,6 @@ class SettingsRepository(
 
   suspend fun updateGraphSmoothing(smoothing: Int) {
     dataStore.edit { it[graphSmoothingKey] = smoothing }
-  }
-
-  suspend fun updateUseRemoteGenerator(useRemote: Boolean) {
-    dataStore.edit { it[useRemoteGeneratorKey] = useRemote }
   }
 
   suspend fun updateLocalVolume(volume: Int) {

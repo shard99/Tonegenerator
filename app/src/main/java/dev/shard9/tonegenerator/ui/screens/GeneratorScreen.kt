@@ -45,6 +45,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -325,20 +326,30 @@ fun GeneratorScreen(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
           val volume = if (viewModel.useRemoteGenerator) viewModel.remoteVolume else viewModel.localVolume
           Text("Volume: $volume%", fontWeight = FontWeight.SemiBold)
+
+          var sliderVolume by remember(volume) { mutableFloatStateOf(volume.toFloat()) }
+
           Slider(
-            value = volume.toFloat(),
-            onValueChange = {
-              if (viewModel.useRemoteGenerator) {
-                viewModel.updateRemoteVolume(it.toInt())
-              } else {
-                viewModel.updateLocalVolume(it.toInt())
+            value = sliderVolume,
+            onValueChange = { newVol ->
+              sliderVolume = newVol
+              if (!viewModel.useRemoteGenerator) {
+                viewModel.updateLocalVolume(newVol.toInt())
                 // Also update system volume for convenience if in phone mode
                 val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 audioManager.setStreamVolume(
                   AudioManager.STREAM_MUSIC,
-                  (it / 100f * max).toInt(),
+                  ((newVol / 100f) * max).toInt(),
                   0,
                 )
+              } else {
+                viewModel.updateRemoteVolume(newVol.toInt())
+              }
+            },
+            onValueChangeFinished = {
+              // Final update to ensure consistency
+              if (viewModel.useRemoteGenerator) {
+                viewModel.updateRemoteVolume(sliderVolume.toInt())
               }
             },
             valueRange = 0f..100f,
