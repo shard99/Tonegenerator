@@ -8,16 +8,21 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shard9.tonegenerator.ThemeMode
+import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.data.SettingsRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
 
 class AppViewModel(
   private val repository: SettingsRepository,
+  private val bleManager: BleManager,
+  private val bleManager: BleManager,
 ) : ViewModel() {
   var positionCount by mutableIntStateOf(3)
     private set
@@ -33,10 +38,23 @@ class AppViewModel(
     private set
   var graphSmoothing by mutableIntStateOf(3)
     private set
+  var useRemoteGenerator by mutableStateOf(false)
+    private set
+  var localVolume by mutableIntStateOf(50)
+    private set
+  var remoteVolume by mutableIntStateOf(0)
+    private set
+  var useRemoteGenerator by mutableStateOf(false)
+    private set
+  var localVolume by mutableIntStateOf(50)
+    private set
+  var remoteVolume by mutableIntStateOf(0)
+    private set
   var selectedFrequency by mutableFloatStateOf(100f)
     private set
   var isPlaying by mutableStateOf(false)
     private set
+  val bleStatus get() = bleManager.status
 
   var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
     private set
@@ -65,6 +83,20 @@ class AppViewModel(
         themeMode = settings.themeMode
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
+        useRemoteGenerator = settings.useRemoteGenerator
+        localVolume = settings.localVolume
+        remoteVolume = settings.remoteVolume
+
+        if (useRemoteGenerator && !bleManager.isConnected) {
+          bleManager.startScanning()
+        }
+        useRemoteGenerator = settings.useRemoteGenerator
+        localVolume = settings.localVolume
+        remoteVolume = settings.remoteVolume
+
+        if (useRemoteGenerator && !bleManager.isConnected) {
+          bleManager.startScanning()
+        }
 
         // Prune graph data if duration changed
         val now = System.currentTimeMillis()
@@ -83,6 +115,15 @@ class AppViewModel(
         }
       }
     }
+    viewModelScope.launch {
+      snapshotFlow { bleManager.status }.collect { status ->
+        if (status == BleManager.Status.SYNCED && useRemoteGenerator) {
+          // Push current (likely reset) values to the newly connected companion
+          bleManager.writeFrequency(selectedFrequency)
+          bleManager.writeVolume(remoteVolume)
+        }
+      }
+    }
   }
 
   private fun resetSelectedFrequency(
@@ -95,6 +136,12 @@ class AppViewModel(
 
   fun updateSelectedFrequency(freq: Float) {
     selectedFrequency = freq
+    if (useRemoteGenerator && bleManager.isConnected) {
+      bleManager.writeFrequency(freq)
+    }
+    if (useRemoteGenerator && bleManager.isConnected) {
+      bleManager.writeFrequency(freq)
+    }
   }
 
   fun updatePlayingState(playing: Boolean) {
@@ -156,6 +203,46 @@ class AppViewModel(
   fun updateTheme(mode: ThemeMode) {
     viewModelScope.launch {
       repository.updateTheme(mode)
+    }
+  }
+
+  fun updateUseRemoteGenerator(useRemote: Boolean) {
+    viewModelScope.launch {
+      // 1. If we were using remote, set its volume to 0 before switching away
+      if (useRemoteGenerator && !useRemote && bleManager.status == BleManager.Status.SYNCED) {
+        bleManager.writeVolume(0)
+        delay(200) // Brief delay to ensure command is sent
+      }
+
+      repository.updateUseRemoteGenerator(useRemote)
+
+      // 2. Safety reset logic for the current UI state
+      updatePlayingState(false)
+
+      // Always reset to min freq and 0 volume when switching modes
+      updateSelectedFrequency(minFreq.toFloat())
+      if (useRemote) {
+        updateRemoteVolume(0)
+        bleManager.startScanning()
+      } else {
+        updateLocalVolume(0)
+        bleManager.disconnect()
+      }
+    }
+  }
+
+  fun updateLocalVolume(volume: Int) {
+    viewModelScope.launch {
+      repository.updateLocalVolume(volume)
+    }
+  }
+
+  fun updateRemoteVolume(volume: Int) {
+    viewModelScope.launch {
+      repository.updateRemoteVolume(volume)
+      if (bleManager.isConnected) {
+        bleManager.writeVolume(volume)
+      }
     }
   }
 

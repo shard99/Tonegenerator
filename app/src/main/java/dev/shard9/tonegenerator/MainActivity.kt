@@ -9,6 +9,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.data.SettingsRepository
 import dev.shard9.tonegenerator.ui.AppNavigation
@@ -21,11 +22,13 @@ enum class ThemeMode { LIGHT, DARK, AUTO }
 
 class MainActivity : ComponentActivity() {
   private var toneGenerator: ToneGenerator? = null
+  private var bleManager: BleManager? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
     toneGenerator = ToneGenerator()
+    bleManager = BleManager(this)
     val repository = SettingsRepository(dataStore)
 
     setContent {
@@ -35,7 +38,7 @@ class MainActivity : ComponentActivity() {
             object : androidx.lifecycle.ViewModelProvider.Factory {
               override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return AppViewModel(repository) as T
+                return AppViewModel(repository, bleManager!!) as T
               }
             },
         )
@@ -58,5 +61,6 @@ class MainActivity : ComponentActivity() {
   override fun onDestroy() {
     super.onDestroy()
     toneGenerator?.release()
+    bleManager?.disconnect()
   }
 }

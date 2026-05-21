@@ -36,6 +36,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -112,6 +113,15 @@ fun GeneratorScreen(
     ) { _ ->
       toneGenerator.start(scope, context)
       viewModel.updatePlayingState(true)
+    }
+
+  val blePermissionLauncher =
+    rememberLauncherForActivityResult(
+      ActivityResultContracts.RequestMultiplePermissions(),
+    ) { permissions ->
+      if (permissions.all { it.value }) {
+        viewModel.updateUseRemoteGenerator(true)
+      }
     }
 
   if (showPositionPicker) {
@@ -240,6 +250,33 @@ fun GeneratorScreen(
               .fillMaxWidth(0.8f)
               .height(100.dp),
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Volume Slider
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+          val volume = if (viewModel.useRemoteGenerator) viewModel.remoteVolume else viewModel.localVolume
+          Text("Volume: $volume%", fontWeight = FontWeight.SemiBold)
+          Slider(
+            value = volume.toFloat(),
+            onValueChange = {
+              if (viewModel.useRemoteGenerator) {
+                viewModel.updateRemoteVolume(it.toInt())
+              } else {
+                viewModel.updateLocalVolume(it.toInt())
+                // Also update system volume for convenience if in phone mode
+                val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                audioManager.setStreamVolume(
+                  AudioManager.STREAM_MUSIC,
+                  (it / 100f * max).toInt(),
+                  0,
+                )
+              }
+            },
+            valueRange = 0f..100f,
+            modifier = Modifier.fillMaxWidth(0.8f),
+          )
+        }
       }
 
       val channels = listOf("Left", "Both", "Right")
@@ -275,16 +312,23 @@ fun GeneratorScreen(
             }
             viewModel.updatePlayingState(false)
           } else {
-            if (ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.RECORD_AUDIO,
-              ) != PackageManager.PERMISSION_GRANTED
-            ) {
-              permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-            } else {
-              toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
-              toneGenerator.start(scope, context)
+            if (viewModel.useRemoteGenerator) {
+              // Start remote play is just sending frequency and volume
               viewModel.updatePlayingState(true)
+              viewModel.updateSelectedFrequency(viewModel.selectedFrequency)
+              viewModel.updateRemoteVolume(viewModel.remoteVolume)
+            } else {
+              if (ContextCompat.checkSelfPermission(
+                  context,
+                  android.Manifest.permission.RECORD_AUDIO,
+                ) != PackageManager.PERMISSION_GRANTED
+              ) {
+                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+              } else {
+                toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
+                toneGenerator.start(scope, context)
+                viewModel.updatePlayingState(true)
+              }
             }
           }
         },
