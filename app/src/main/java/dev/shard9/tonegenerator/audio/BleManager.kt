@@ -28,6 +28,7 @@ private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b
 private val FREQ_CHAR_UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
 private val VOL_CHAR_UUID = UUID.fromString("8a7f14b6-7eb4-45fb-8120-6d45904f8e22")
 private val PLAY_CHAR_UUID = UUID.fromString("c82b0f41-aef4-44bc-a0a3-c59124430e7a")
+private val CHAN_CHAR_UUID = UUID.fromString("1c95d5e3-d03b-4c7d-9407-3bd442084c6e")
 private val LOG_CHAR_UUID = UUID.fromString("7ba37b12-1f7c-47bc-9407-3bd442084c6e")
 private val CLIENT_CONFIG_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
@@ -51,6 +52,7 @@ class BleManager(
   private var freqCharacteristic: BluetoothGattCharacteristic? = null
   private var volCharacteristic: BluetoothGattCharacteristic? = null
   private var playCharacteristic: BluetoothGattCharacteristic? = null
+  private var chanCharacteristic: BluetoothGattCharacteristic? = null
   private var logCharacteristic: BluetoothGattCharacteristic? = null
 
   var isConnected = false
@@ -156,6 +158,7 @@ class BleManager(
           freqCharacteristic = null
           volCharacteristic = null
           playCharacteristic = null
+          chanCharacteristic = null
           logCharacteristic = null
           gatt.close()
           if (bluetoothGatt == gatt) bluetoothGatt = null
@@ -172,12 +175,15 @@ class BleManager(
             freqCharacteristic = service.getCharacteristic(FREQ_CHAR_UUID)
             volCharacteristic = service.getCharacteristic(VOL_CHAR_UUID)
             playCharacteristic = service.getCharacteristic(PLAY_CHAR_UUID)
+            chanCharacteristic = service.getCharacteristic(CHAN_CHAR_UUID)
             logCharacteristic = service.getCharacteristic(LOG_CHAR_UUID)
 
-            // Subscribe to log notifications
-            logCharacteristic?.let { char ->
-              gatt.setCharacteristicNotification(char, true)
-              char.getDescriptor(CLIENT_CONFIG_UUID)?.let { descriptor ->
+            val logChar = logCharacteristic
+            if (logChar != null) {
+              Log.d(TAG, "Subscribing to log characteristic: ${logChar.uuid}")
+              gatt.setCharacteristicNotification(logChar, true)
+              val descriptor = logChar.getDescriptor(CLIENT_CONFIG_UUID)
+              if (descriptor != null) {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
                   gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
                 } else {
@@ -186,12 +192,32 @@ class BleManager(
                   @Suppress("DEPRECATION")
                   gatt.writeDescriptor(descriptor)
                 }
+              } else {
+                Log.w(TAG, "CCCD Descriptor not found for log characteristic!")
+                // Fallback to Synced if we can't subscribe but characteristics are there
+                this@BleManager.status = Status.SYNCED
               }
+            } else {
+              Log.d(TAG, "Services discovered. Characteristics acquired (no logs characteristic found).")
+              this@BleManager.status = Status.SYNCED
             }
-
-            Log.d(TAG, "Services discovered and characteristics acquired.")
-            this@BleManager.status = Status.SYNCED
           }
+        }
+      }
+
+      override fun onDescriptorWrite(
+        gatt: BluetoothGatt,
+        descriptor: BluetoothGattDescriptor,
+        status: Int,
+      ) {
+        if (descriptor.characteristic.uuid == LOG_CHAR_UUID) {
+          if (status == BluetoothGatt.GATT_SUCCESS) {
+            Log.d(TAG, "Log subscription successful.")
+          } else {
+            Log.e(TAG, "Log subscription failed with status: $status")
+          }
+          // Regardless of log subscription success, we are now "SYNCED" and can send data
+          this@BleManager.status = Status.SYNCED
         }
       }
 
@@ -203,7 +229,7 @@ class BleManager(
         if (characteristic.uuid == LOG_CHAR_UUID) {
           @Suppress("DEPRECATION")
           val logMsg = String(characteristic.value)
-          Log.d(TAG, "Log received: $logMsg")
+          Log.d(TAG, "Log received (deprecated): $logMsg")
           onLogReceived?.invoke(logMsg)
         }
       }
@@ -227,7 +253,6 @@ class BleManager(
       ) {
         if (status == BluetoothGatt.GATT_SUCCESS) {
           Log.d(TAG, "Write success for: ${characteristic.uuid}")
-          this@BleManager.status = Status.SYNCED
         } else {
           Log.e(TAG, "Characteristic write failed: $status for ${characteristic.uuid}")
           this@BleManager.status = Status.ERROR
@@ -255,6 +280,13 @@ class BleManager(
     val char = playCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
     val data = (if (playing) "1" else "0").toByteArray()
+    write(gatt, char, data)
+  }
+
+  fun writeChannel(index: Int) {
+    val char = chanCharacteristic ?: return
+    val gatt = bluetoothGatt ?: return
+    val data = index.toString().toByteArray()
     write(gatt, char, data)
   }
 

@@ -88,7 +88,6 @@ fun GeneratorScreen(
   viewModel: AppViewModel,
   modifier: Modifier = Modifier,
 ) {
-  var channelIndex by remember { mutableIntStateOf(1) }
   var showPositionPicker by remember { mutableStateOf(false) }
   var showBleInfoDialog by remember { mutableStateOf(false) }
   var confirmationText by remember { mutableStateOf("") }
@@ -470,10 +469,10 @@ fun GeneratorScreen(
           SegmentedButton(
             shape = SegmentedButtonDefaults.itemShape(index = index, count = channels.size),
             onClick = {
-              channelIndex = index
+              viewModel.updateChannelSelection(index)
               toneGenerator.channelSelection = index
             },
-            selected = channelIndex == index,
+            selected = viewModel.channelSelection == index,
           ) {
             Text(label, fontSize = 12.sp)
           }

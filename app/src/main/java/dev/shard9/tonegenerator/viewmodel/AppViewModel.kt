@@ -44,6 +44,8 @@ class AppViewModel(
     private set
   var volume by mutableIntStateOf(50)
     private set
+  var channelSelection by mutableIntStateOf(1)
+    private set
   var selectedFrequency by mutableFloatStateOf(100f)
     private set
   var isPlaying by mutableStateOf(false)
@@ -119,6 +121,7 @@ class AppViewModel(
           // Push current values to the newly connected companion
           bleManager.writeFrequency(selectedFrequency)
           bleManager.writeVolume(volume)
+          bleManager.writeChannel(channelSelection)
           bleManager.writePlayState(isPlaying)
         }
       }
@@ -143,6 +146,18 @@ class AppViewModel(
         .collect { vol ->
           if (useRemoteGenerator && bleManager.isConnected) {
             bleManager.writeVolume(vol)
+            delay(250)
+          }
+        }
+    }
+
+    // Throttled BLE channel updates (max 4/sec)
+    viewModelScope.launch {
+      snapshotFlow { channelSelection }
+        .conflate()
+        .collect { chan ->
+          if (useRemoteGenerator && bleManager.isConnected) {
+            bleManager.writeChannel(chan)
             delay(250)
           }
         }
@@ -258,6 +273,10 @@ class AppViewModel(
     viewModelScope.launch {
       repository.updateVolume(newVolume)
     }
+  }
+
+  fun updateChannelSelection(index: Int) {
+    channelSelection = index
   }
 
   fun updateGraphDuration(duration: Int) {
