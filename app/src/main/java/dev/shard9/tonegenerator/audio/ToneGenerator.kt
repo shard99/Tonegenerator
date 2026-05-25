@@ -94,7 +94,11 @@ class ToneGenerator {
         val buffer = FloatArray(numSamples)
 
         val fadeInSamples = sampleRate // 1 second
-        val fadeOutLimit = (sampleRate * 0.1).toInt() // 20ms
+        val fadeOutLimit = (sampleRate * 0.1).toInt() // 100ms
+        val chanTransitionSamples = (sampleRate * 0.02).toInt() // 20ms
+
+        var curLeft = 0f
+        var curRight = 0f
 
         var samplesProcessed = 0
         var fadeOutSamples = 0
@@ -105,6 +109,10 @@ class ToneGenerator {
             val currentOvertones = overtones
             val currentChannel = channelSelection
 
+            val targetLeft = if (currentChannel == 0 || currentChannel == 1) 1f else 0f
+            val targetRight = if (currentChannel == 2 || currentChannel == 1) 1f else 0f
+            val chanStep = 1f / chanTransitionSamples
+
             val activeHarmonics =
               (0..currentOvertones).filter { k ->
                 (currentFreq * 2.0.pow(k)) <= 20000.0
@@ -112,6 +120,19 @@ class ToneGenerator {
             val gain = if (activeHarmonics.isEmpty()) 0f else 1.0f / activeHarmonics.size
 
             for (i in 0 until buffer.size step 2) {
+              // Smooth Channel Transition
+              if (curLeft < targetLeft) {
+                curLeft = (curLeft + chanStep).coerceAtMost(targetLeft)
+              } else if (curLeft > targetLeft) {
+                curLeft = (curLeft - chanStep).coerceAtLeast(targetLeft)
+              }
+
+              if (curRight < targetRight) {
+                curRight = (curRight + chanStep).coerceAtMost(targetRight)
+              } else if (curRight > targetRight) {
+                curRight = (curRight - chanStep).coerceAtLeast(targetRight)
+              }
+
               val fadeInVolume =
                 if (samplesProcessed < fadeInSamples) {
                   samplesProcessed.toFloat() / fadeInSamples
@@ -140,24 +161,10 @@ class ToneGenerator {
                 sampleValue += sin(phase * (2.0.pow(k)))
               }
 
-              val finalSample = (sampleValue * gain * combinedVolume).toFloat()
+              val baseSample = (sampleValue * gain * combinedVolume).toFloat()
 
-              when (currentChannel) {
-                0 -> {
-                  buffer[i] = finalSample
-                  buffer[i + 1] = 0f
-                }
-
-                2 -> {
-                  buffer[i] = 0f
-                  buffer[i + 1] = finalSample
-                }
-
-                else -> {
-                  buffer[i] = finalSample
-                  buffer[i + 1] = finalSample
-                }
-              }
+              buffer[i] = baseSample * curLeft
+              buffer[i + 1] = baseSample * curRight
 
               phase += 2.0 * PI * currentFreq / sampleRate
               if (phase > 2.0 * PI) phase -= 2.0 * PI
