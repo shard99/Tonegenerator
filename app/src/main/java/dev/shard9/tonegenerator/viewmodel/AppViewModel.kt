@@ -40,9 +40,7 @@ class AppViewModel(
     private set
   var useRemoteGenerator by mutableStateOf(false)
     private set
-  var localVolume by mutableIntStateOf(50)
-    private set
-  var remoteVolume by mutableIntStateOf(0)
+  var volume by mutableIntStateOf(50)
     private set
   var selectedFrequency by mutableFloatStateOf(100f)
     private set
@@ -77,8 +75,7 @@ class AppViewModel(
         themeMode = settings.themeMode
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
-        localVolume = settings.localVolume
-        remoteVolume = settings.remoteVolume
+        volume = settings.volume
 
         if (useRemoteGenerator && !bleManager.isConnected) {
           bleManager.startScanning()
@@ -96,7 +93,7 @@ class AppViewModel(
         }
 
         // Ensure selected frequency is within valid range
-        if (selectedFrequency < minFreq || selectedFrequency > maxFreq) {
+        if ((selectedFrequency < minFreq) || (selectedFrequency > maxFreq)) {
           resetSelectedFrequency(minFreq, maxFreq)
         }
       }
@@ -104,9 +101,9 @@ class AppViewModel(
     viewModelScope.launch {
       snapshotFlow { bleManager.status }.collect { status ->
         if (status == BleManager.Status.SYNCED && useRemoteGenerator) {
-          // Push current (likely reset) values to the newly connected companion
+          // Push current values to the newly connected companion
           bleManager.writeFrequency(selectedFrequency)
-          bleManager.writeVolume(remoteVolume)
+          bleManager.writeVolume(volume)
           bleManager.writePlayState(isPlaying)
         }
       }
@@ -126,11 +123,11 @@ class AppViewModel(
 
     // Throttled BLE volume updates (max 4/sec)
     viewModelScope.launch {
-      snapshotFlow { remoteVolume }
+      snapshotFlow { volume }
         .conflate()
-        .collect { volume ->
+        .collect { vol ->
           if (useRemoteGenerator && bleManager.isConnected) {
-            bleManager.writeVolume(volume)
+            bleManager.writeVolume(vol)
             delay(250)
           }
         }
@@ -220,40 +217,29 @@ class AppViewModel(
 
   fun updateUseRemoteGenerator(useRemote: Boolean) {
     viewModelScope.launch {
-      // 1. If we were using remote, set its volume to 0 before switching away
+      // 1. If we were using remote, ensure it stops immediately
       if (useRemoteGenerator && !useRemote && bleManager.status == BleManager.Status.SYNCED) {
-        bleManager.writeVolume(0)
-        delay(200) // Brief delay to ensure command is sent
+        bleManager.writePlayState(false)
+        delay(100)
       }
 
       useRemoteGenerator = useRemote
 
-      // 2. Safety reset logic for the current UI state
+      // 2. Always turn off tone generation when switching
       updatePlayingState(false)
 
-      // Always reset to min freq and 0 volume when switching modes
-      updateSelectedFrequency(minFreq.toFloat())
       if (useRemote) {
-        updateRemoteVolume(0)
         bleManager.startScanning()
       } else {
-        updateLocalVolume(0)
         bleManager.disconnect()
       }
     }
   }
 
-  fun updateLocalVolume(volume: Int) {
-    localVolume = volume
+  fun updateVolume(newVolume: Int) {
+    volume = newVolume
     viewModelScope.launch {
-      repository.updateLocalVolume(volume)
-    }
-  }
-
-  fun updateRemoteVolume(volume: Int) {
-    remoteVolume = volume
-    viewModelScope.launch {
-      repository.updateRemoteVolume(volume)
+      repository.updateVolume(newVolume)
     }
   }
 

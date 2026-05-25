@@ -19,8 +19,7 @@ class SettingsRepository(
   private val themeModeKey = stringPreferencesKey("theme_mode")
   private val graphDurationKey = intPreferencesKey("graph_duration")
   private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
-  private val localVolumeKey = intPreferencesKey("local_volume")
-  private val remoteVolumeKey = intPreferencesKey("remote_volume")
+  private val volumeKey = intPreferencesKey("volume")
   private val positionNamesPrefix = "position_name_"
 
   data class AppSettings(
@@ -30,8 +29,7 @@ class SettingsRepository(
     val themeMode: ThemeMode,
     val graphDuration: Int,
     val graphSmoothing: Int,
-    val localVolume: Int,
-    val remoteVolume: Int,
+    val volume: Int,
     val positionNames: List<String>,
   )
 
@@ -58,8 +56,9 @@ class SettingsRepository(
       val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
       val graphDuration = prefs[graphDurationKey] ?: 3
       val graphSmoothing = prefs[graphSmoothingKey] ?: 3
-      val localVolume = prefs[localVolumeKey] ?: 50
-      val remoteVolume = prefs[remoteVolumeKey] ?: 0
+
+      // Fallback for migration from localVolumeKey if volumeKey is missing
+      val volume = prefs[volumeKey] ?: prefs[intPreferencesKey("local_volume")] ?: 50
 
       val positionNames =
         List(6) { i ->
@@ -73,8 +72,7 @@ class SettingsRepository(
         themeMode = themeMode,
         graphDuration = graphDuration,
         graphSmoothing = graphSmoothing,
-        localVolume = localVolume,
-        remoteVolume = remoteVolume,
+        volume = volume,
         positionNames = positionNames,
       )
     }
@@ -112,12 +110,8 @@ class SettingsRepository(
     dataStore.edit { it[graphSmoothingKey] = smoothing }
   }
 
-  suspend fun updateLocalVolume(volume: Int) {
-    dataStore.edit { it[localVolumeKey] = volume }
-  }
-
-  suspend fun updateRemoteVolume(volume: Int) {
-    dataStore.edit { it[remoteVolumeKey] = volume }
+  suspend fun updateVolume(volume: Int) {
+    dataStore.edit { it[volumeKey] = volume }
   }
 
   suspend fun resetToDefaults() {

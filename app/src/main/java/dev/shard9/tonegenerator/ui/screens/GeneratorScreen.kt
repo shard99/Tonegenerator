@@ -202,6 +202,9 @@ fun GeneratorScreen(
         Switch(
           checked = viewModel.useRemoteGenerator,
           onCheckedChange = { useRemote ->
+            if (viewModel.isPlaying) {
+              toneGenerator.stop()
+            }
             if (useRemote) {
               val permissions =
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
@@ -324,17 +327,17 @@ fun GeneratorScreen(
 
         // Volume Slider
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          val volume = if (viewModel.useRemoteGenerator) viewModel.remoteVolume else viewModel.localVolume
-          Text("Volume: $volume%", fontWeight = FontWeight.SemiBold)
+          Text("Volume: ${viewModel.volume}%", fontWeight = FontWeight.SemiBold)
 
-          var sliderVolume by remember(volume) { mutableFloatStateOf(volume.toFloat()) }
+          var sliderVolume by remember(viewModel.volume) { mutableFloatStateOf(viewModel.volume.toFloat()) }
 
           Slider(
             value = sliderVolume,
             onValueChange = { newVol ->
               sliderVolume = newVol
+              viewModel.updateVolume(newVol.toInt())
+
               if (!viewModel.useRemoteGenerator) {
-                viewModel.updateLocalVolume(newVol.toInt())
                 // Also update system volume for convenience if in phone mode
                 val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 audioManager.setStreamVolume(
@@ -342,15 +345,11 @@ fun GeneratorScreen(
                   ((newVol / 100f) * max).toInt(),
                   0,
                 )
-              } else {
-                viewModel.updateRemoteVolume(newVol.toInt())
               }
             },
             onValueChangeFinished = {
               // Final update to ensure consistency
-              if (viewModel.useRemoteGenerator) {
-                viewModel.updateRemoteVolume(sliderVolume.toInt())
-              }
+              viewModel.updateVolume(sliderVolume.toInt())
             },
             valueRange = 0f..100f,
             modifier = Modifier.fillMaxWidth(0.8f),
@@ -394,8 +393,6 @@ fun GeneratorScreen(
             if (viewModel.useRemoteGenerator) {
               // Start remote play is just sending frequency and volume
               viewModel.updatePlayingState(true)
-              viewModel.updateSelectedFrequency(viewModel.selectedFrequency)
-              viewModel.updateRemoteVolume(viewModel.remoteVolume)
             } else {
               if (ContextCompat.checkSelfPermission(
                   context,
