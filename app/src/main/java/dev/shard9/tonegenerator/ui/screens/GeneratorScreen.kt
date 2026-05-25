@@ -51,10 +51,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -62,11 +60,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -79,7 +81,6 @@ import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -171,20 +172,16 @@ fun GeneratorScreen(
     }
   }
 
-  var currentVolumeInt by remember {
-    mutableIntStateOf(audioManager.getStreamVolume(AudioManager.STREAM_MUSIC))
-  }
-
-  val maxVolume = remember { audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
-  val volumePercentage by remember {
-    derivedStateOf {
-      if (maxVolume > 0) ((currentVolumeInt.toFloat() / maxVolume) * 100).roundToInt() else 0
-    }
-  }
-
   LaunchedEffect(audioManager) {
+    val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
     while (true) {
-      currentVolumeInt = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+      val systemVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+      if (!viewModel.useRemoteGenerator) {
+        val percent = if (max > 0) ((systemVol.toFloat() / max) * 100).toInt() else 0
+        if (percent != viewModel.volume) {
+          viewModel.updateVolume(percent)
+        }
+      }
       delay(500)
     }
   }
@@ -295,10 +292,14 @@ fun GeneratorScreen(
         )
       }
 
-      Column(horizontalAlignment = Alignment.CenterHorizontally) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.padding(horizontal = 16.dp),
+      ) {
         FrequencyWheel(
           value = viewModel.selectedFrequency,
-          volume = volumePercentage,
+          volume = viewModel.volume,
           onValueChange = {
             viewModel.updateSelectedFrequency(it)
             toneGenerator.setFrequency(it.toDouble())
@@ -307,130 +308,19 @@ fun GeneratorScreen(
           size = 240.dp,
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
-        Row(
-          verticalAlignment = Alignment.CenterVertically,
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 24.dp),
-        ) {
-          Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
-          Spacer(modifier = Modifier.width(8.dp))
-          LinearProgressIndicator(
-            progress = { toneGenerator.measuredLevel.toFloat() },
-            modifier =
-              Modifier
-                .weight(1f)
-                .height(12.dp),
-            color = GreenX,
-            trackColor = Color.LightGray,
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          val measuredValue = toneGenerator.measuredLevel * 10.0
-          Text(
-            text = String.format(Locale.US, "%.1f", measuredValue),
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.width(45.dp),
-          )
-          Spacer(modifier = Modifier.width(8.dp))
-          IconButton(
-            onClick = { showPositionPicker = true },
-            modifier = Modifier.size(48.dp),
-            enabled = viewModel.isPlaying,
-          ) {
-            Icon(
-              imageVector = Icons.Default.Star,
-              contentDescription = "Save to position",
-              tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
-              modifier = Modifier.size(36.dp),
-            )
-          }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
+        // Vertical Volume Slider
         Box(
           modifier =
             Modifier
-              .fillMaxWidth(0.8f)
-              .height(100.dp),
+              .height(240.dp)
+              .width(36.dp),
+          contentAlignment = Alignment.Center,
         ) {
-          if (viewModel.showLogs && viewModel.useRemoteGenerator) {
-            val listState = rememberLazyListState()
-            LaunchedEffect(viewModel.bleLogs.size) {
-              if (viewModel.bleLogs.isNotEmpty()) {
-                listState.animateScrollToItem(viewModel.bleLogs.size - 1)
-              }
-            }
-            LazyColumn(
-              state = listState,
-              modifier =
-                Modifier
-                  .fillMaxSize()
-                  .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
-                  .padding(4.dp),
-            ) {
-              items(viewModel.bleLogs) { logMsg ->
-                Text(
-                  text = logMsg,
-                  fontSize = 10.sp,
-                  fontFamily = FontFamily.Monospace,
-                  lineHeight = 12.sp,
-                  modifier = Modifier.padding(vertical = 1.dp),
-                )
-              }
-            }
-          } else {
-            MeasurementGraph(
-              dataPoints = viewModel.graphData,
-              startTime = viewModel.sessionStartTime,
-              durationSeconds = viewModel.graphDuration,
-              modifier = Modifier.fillMaxSize(),
-            )
+          var sliderVolume by remember(viewModel.volume) {
+            mutableFloatStateOf(viewModel.volume.toFloat())
           }
-
-          if (viewModel.useRemoteGenerator) {
-            Row(
-              modifier =
-                Modifier
-                  .align(Alignment.TopEnd)
-                  .padding(4.dp),
-              verticalAlignment = Alignment.CenterVertically,
-            ) {
-              Icon(
-                imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
-                contentDescription = "Toggle View",
-                modifier = Modifier.size(16.dp),
-                tint = Color.Gray,
-              )
-              Spacer(modifier = Modifier.width(4.dp))
-              Switch(
-                checked = viewModel.showLogs,
-                onCheckedChange = { viewModel.toggleShowLogs() },
-                modifier = Modifier.size(32.dp),
-                thumbContent = {
-                  Box(
-                    modifier =
-                      Modifier
-                        .size(SwitchDefaults.IconSize)
-                        .background(Color.Transparent),
-                  )
-                },
-              )
-            }
-          }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Volume Slider
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-          Text("Volume: ${viewModel.volume}%", fontWeight = FontWeight.SemiBold)
-
-          var sliderVolume by remember(viewModel.volume) { mutableFloatStateOf(viewModel.volume.toFloat()) }
 
           Slider(
             value = sliderVolume,
@@ -439,7 +329,6 @@ fun GeneratorScreen(
               viewModel.updateVolume(newVol.toInt())
 
               if (!viewModel.useRemoteGenerator) {
-                // Also update system volume for convenience if in phone mode
                 val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
                 audioManager.setStreamVolume(
                   AudioManager.STREAM_MUSIC,
@@ -449,14 +338,153 @@ fun GeneratorScreen(
               }
             },
             onValueChangeFinished = {
-              // Final update to ensure consistency
               viewModel.updateVolume(sliderVolume.toInt())
             },
             valueRange = 0f..100f,
-            modifier = Modifier.fillMaxWidth(0.8f),
+            modifier =
+              Modifier
+                .graphicsLayer {
+                  rotationZ = -90f
+                  transformOrigin = TransformOrigin.Center
+                }.layout { measurable, constraints ->
+                  val placeable =
+                    measurable.measure(
+                      Constraints(
+                        minWidth = constraints.minHeight,
+                        maxWidth = constraints.maxHeight,
+                        minHeight = constraints.minWidth,
+                        maxHeight = constraints.maxWidth,
+                      ),
+                    )
+                  layout(placeable.height, placeable.width) {
+                    placeable.place(
+                      (placeable.height - placeable.width) / 2,
+                      (placeable.width - placeable.height) / 2,
+                    )
+                  }
+                }.width(240.dp),
           )
         }
       }
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+      ) {
+        Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
+        Spacer(modifier = Modifier.width(8.dp))
+        LinearProgressIndicator(
+          progress = { toneGenerator.measuredLevel.toFloat() },
+          modifier =
+            Modifier
+              .weight(1f)
+              .height(12.dp),
+          color = GreenX,
+          trackColor = Color.LightGray,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        val measuredValue = toneGenerator.measuredLevel * 10.0
+        Text(
+          text = String.format(Locale.US, "%.1f", measuredValue),
+          fontSize = 21.sp,
+          fontWeight = FontWeight.Bold,
+          modifier = Modifier.width(45.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        IconButton(
+          onClick = { showPositionPicker = true },
+          modifier = Modifier.size(48.dp),
+          enabled = viewModel.isPlaying,
+        ) {
+          Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = "Save to position",
+            tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
+            modifier = Modifier.size(36.dp),
+          )
+        }
+      }
+
+      Spacer(modifier = Modifier.height(16.dp))
+
+      Box(
+        modifier =
+          Modifier
+            .fillMaxWidth(0.8f)
+            .height(100.dp),
+      ) {
+        if (viewModel.showLogs && viewModel.useRemoteGenerator) {
+          val listState = rememberLazyListState()
+          LaunchedEffect(viewModel.bleLogs.size) {
+            if (viewModel.bleLogs.isNotEmpty()) {
+              listState.animateScrollToItem(viewModel.bleLogs.size - 1)
+            }
+          }
+          LazyColumn(
+            state = listState,
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
+                .padding(4.dp),
+          ) {
+            items(viewModel.bleLogs) { logMsg ->
+              Text(
+                text = logMsg,
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+                lineHeight = 12.sp,
+                modifier = Modifier.padding(vertical = 1.dp),
+              )
+            }
+          }
+        } else {
+          MeasurementGraph(
+            dataPoints = viewModel.graphData,
+            startTime = viewModel.sessionStartTime,
+            durationSeconds = viewModel.graphDuration,
+            modifier = Modifier.fillMaxSize(),
+          )
+        }
+
+        if (viewModel.useRemoteGenerator) {
+          Row(
+            modifier =
+              Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Icon(
+              imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
+              contentDescription = "Toggle View",
+              modifier = Modifier.size(16.dp),
+              tint = Color.Gray,
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Switch(
+              checked = viewModel.showLogs,
+              onCheckedChange = { viewModel.toggleShowLogs() },
+              modifier = Modifier.size(32.dp),
+              thumbContent = {
+                Box(
+                  modifier =
+                    Modifier
+                      .size(SwitchDefaults.IconSize)
+                      .background(Color.Transparent),
+                )
+              },
+            )
+          }
+        }
+      }
+
+      Spacer(modifier = Modifier.height(16.dp))
 
       val channels = listOf("Left", "Both", "Right")
       SingleChoiceSegmentedButtonRow(

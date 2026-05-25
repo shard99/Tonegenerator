@@ -242,7 +242,7 @@ fun FrequencyWheel(
         )
         Text(
           text = "Vol: $volume%",
-          fontSize = (size.value / 15).sp,
+          fontSize = (size.value / 8).sp,
           color = Color.Gray,
           textAlign = TextAlign.Center,
         )
