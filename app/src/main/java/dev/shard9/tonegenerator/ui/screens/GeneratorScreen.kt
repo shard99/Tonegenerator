@@ -22,9 +22,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,7 +46,9 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -57,6 +65,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,6 +90,7 @@ fun GeneratorScreen(
 ) {
   var channelIndex by remember { mutableIntStateOf(1) }
   var showPositionPicker by remember { mutableStateOf(false) }
+  var showBleInfoDialog by remember { mutableStateOf(false) }
   var confirmationText by remember { mutableStateOf("") }
   var confirmationVisible by remember { mutableStateOf(false) }
 
@@ -248,12 +258,42 @@ fun GeneratorScreen(
               BleManager.Status.ERROR -> Color.Red
             }
           Box(
+            contentAlignment = Alignment.Center,
             modifier =
               Modifier
-                .size(12.dp)
-                .background(statusColor, CircleShape),
-          )
+                .size(18.dp)
+                .background(statusColor, CircleShape)
+                .clickable { showBleInfoDialog = true },
+          ) {
+            Text(
+              text = "i",
+              color = if (statusColor == Color.Yellow) Color.Black else Color.White,
+              fontSize = 11.sp,
+              fontWeight = FontWeight.Bold,
+            )
+          }
         }
+      }
+
+      if (showBleInfoDialog) {
+        AlertDialog(
+          onDismissRequest = { showBleInfoDialog = false },
+          title = { Text("Connection Status") },
+          text = {
+            Column {
+              StatusInfoRow(Color.Gray, "Disconnected", "Not connected to any device.")
+              StatusInfoRow(Color.Yellow, "Connecting", "Searching for companion hardware.")
+              StatusInfoRow(Color.Blue, "Connected", "Connection established, syncing...")
+              StatusInfoRow(GreenX, "Synced", "Ready to generate remote tones.")
+              StatusInfoRow(Color.Red, "Error", "Connection failed or timed out.")
+            }
+          },
+          confirmButton = {
+            TextButton(onClick = { showBleInfoDialog = false }) {
+              Text("OK")
+            }
+          },
+        )
       }
 
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -313,15 +353,77 @@ fun GeneratorScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        MeasurementGraph(
-          dataPoints = viewModel.graphData,
-          startTime = viewModel.sessionStartTime,
-          durationSeconds = viewModel.graphDuration,
+        Box(
           modifier =
             Modifier
               .fillMaxWidth(0.8f)
               .height(100.dp),
-        )
+        ) {
+          if (viewModel.showLogs && viewModel.useRemoteGenerator) {
+            val listState = rememberLazyListState()
+            LaunchedEffect(viewModel.bleLogs.size) {
+              if (viewModel.bleLogs.isNotEmpty()) {
+                listState.animateScrollToItem(viewModel.bleLogs.size - 1)
+              }
+            }
+            LazyColumn(
+              state = listState,
+              modifier =
+                Modifier
+                  .fillMaxSize()
+                  .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
+                  .padding(4.dp),
+            ) {
+              items(viewModel.bleLogs) { logMsg ->
+                Text(
+                  text = logMsg,
+                  fontSize = 10.sp,
+                  fontFamily = FontFamily.Monospace,
+                  lineHeight = 12.sp,
+                  modifier = Modifier.padding(vertical = 1.dp),
+                )
+              }
+            }
+          } else {
+            MeasurementGraph(
+              dataPoints = viewModel.graphData,
+              startTime = viewModel.sessionStartTime,
+              durationSeconds = viewModel.graphDuration,
+              modifier = Modifier.fillMaxSize(),
+            )
+          }
+
+          if (viewModel.useRemoteGenerator) {
+            Row(
+              modifier =
+                Modifier
+                  .align(Alignment.TopEnd)
+                  .padding(4.dp),
+              verticalAlignment = Alignment.CenterVertically,
+            ) {
+              Icon(
+                imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
+                contentDescription = "Toggle View",
+                modifier = Modifier.size(16.dp),
+                tint = Color.Gray,
+              )
+              Spacer(modifier = Modifier.width(4.dp))
+              Switch(
+                checked = viewModel.showLogs,
+                onCheckedChange = { viewModel.toggleShowLogs() },
+                modifier = Modifier.size(32.dp),
+                thumbContent = {
+                  Box(
+                    modifier =
+                      Modifier
+                        .size(SwitchDefaults.IconSize)
+                        .background(Color.Transparent),
+                  )
+                },
+              )
+            }
+          }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -431,6 +533,30 @@ fun GeneratorScreen(
           fontWeight = FontWeight.Bold,
         )
       }
+    }
+  }
+}
+
+@Composable
+fun StatusInfoRow(
+  color: Color,
+  label: String,
+  description: String,
+) {
+  Row(
+    verticalAlignment = Alignment.CenterVertically,
+    modifier = Modifier.padding(vertical = 4.dp),
+  ) {
+    Box(
+      modifier =
+        Modifier
+          .size(12.dp)
+          .background(color, CircleShape),
+    )
+    Spacer(modifier = Modifier.width(12.dp))
+    Column {
+      Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+      Text(description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
     }
   }
 }

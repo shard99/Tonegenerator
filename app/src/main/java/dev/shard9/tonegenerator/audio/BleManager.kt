@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
@@ -27,6 +28,8 @@ private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b
 private val FREQ_CHAR_UUID = UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8")
 private val VOL_CHAR_UUID = UUID.fromString("8a7f14b6-7eb4-45fb-8120-6d45904f8e22")
 private val PLAY_CHAR_UUID = UUID.fromString("c82b0f41-aef4-44bc-a0a3-c59124430e7a")
+private val LOG_CHAR_UUID = UUID.fromString("7ba37b12-1f7c-47bc-9407-3bd442084c6e")
+private val CLIENT_CONFIG_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
 @SuppressLint("MissingPermission")
 class BleManager(
@@ -37,6 +40,8 @@ class BleManager(
   var status by mutableStateOf(Status.DISCONNECTED)
     private set
 
+  var onLogReceived: ((String) -> Unit)? = null
+
   private val bluetoothAdapter: BluetoothAdapter? by lazy {
     val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
     manager.adapter
@@ -46,6 +51,7 @@ class BleManager(
   private var freqCharacteristic: BluetoothGattCharacteristic? = null
   private var volCharacteristic: BluetoothGattCharacteristic? = null
   private var playCharacteristic: BluetoothGattCharacteristic? = null
+  private var logCharacteristic: BluetoothGattCharacteristic? = null
 
   var isConnected = false
     private set
@@ -150,6 +156,7 @@ class BleManager(
           freqCharacteristic = null
           volCharacteristic = null
           playCharacteristic = null
+          logCharacteristic = null
           gatt.close()
           if (bluetoothGatt == gatt) bluetoothGatt = null
         }
@@ -165,9 +172,51 @@ class BleManager(
             freqCharacteristic = service.getCharacteristic(FREQ_CHAR_UUID)
             volCharacteristic = service.getCharacteristic(VOL_CHAR_UUID)
             playCharacteristic = service.getCharacteristic(PLAY_CHAR_UUID)
+            logCharacteristic = service.getCharacteristic(LOG_CHAR_UUID)
+
+            // Subscribe to log notifications
+            logCharacteristic?.let { char ->
+              gatt.setCharacteristicNotification(char, true)
+              char.getDescriptor(CLIENT_CONFIG_UUID)?.let { descriptor ->
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                  gatt.writeDescriptor(descriptor, BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE)
+                } else {
+                  @Suppress("DEPRECATION")
+                  descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                  @Suppress("DEPRECATION")
+                  gatt.writeDescriptor(descriptor)
+                }
+              }
+            }
+
             Log.d(TAG, "Services discovered and characteristics acquired.")
             this@BleManager.status = Status.SYNCED
           }
+        }
+      }
+
+      @Suppress("DEPRECATION")
+      override fun onCharacteristicChanged(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+      ) {
+        if (characteristic.uuid == LOG_CHAR_UUID) {
+          @Suppress("DEPRECATION")
+          val logMsg = String(characteristic.value)
+          Log.d(TAG, "Log received: $logMsg")
+          onLogReceived?.invoke(logMsg)
+        }
+      }
+
+      override fun onCharacteristicChanged(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        value: ByteArray,
+      ) {
+        if (characteristic.uuid == LOG_CHAR_UUID) {
+          val logMsg = String(value)
+          Log.d(TAG, "Log received: $logMsg")
+          onLogReceived?.invoke(logMsg)
         }
       }
 

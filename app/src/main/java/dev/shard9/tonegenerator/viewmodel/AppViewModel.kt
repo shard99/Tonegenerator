@@ -17,6 +17,8 @@ import dev.shard9.tonegenerator.data.SettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -46,6 +48,10 @@ class AppViewModel(
     private set
   var isPlaying by mutableStateOf(false)
     private set
+  var showLogs by mutableStateOf(false)
+    private set
+  var bleLogs = mutableStateListOf<String>()
+    private set
   val bleStatus get() = bleManager.status
 
   var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
@@ -64,8 +70,17 @@ class AppViewModel(
     private set
 
   private val smoothingBuffer = mutableListOf<Double>()
+  private val logTimestampFormat = SimpleDateFormat("HH:mm:ss.SS", Locale.US)
 
   init {
+    bleManager.onLogReceived = { msg ->
+      val timestamp = logTimestampFormat.format(Date())
+      bleLogs.add("$timestamp: $msg")
+      while (bleLogs.size > 20) {
+        bleLogs.removeAt(0)
+      }
+    }
+
     viewModelScope.launch {
       repository.settingsFlow.collect { settings ->
         positionCount = settings.positionCount
@@ -265,6 +280,10 @@ class AppViewModel(
 
   fun clearHistory() {
     history.clear()
+  }
+
+  fun toggleShowLogs() {
+    showLogs = !showLogs
   }
 
   fun saveMeasurement(
