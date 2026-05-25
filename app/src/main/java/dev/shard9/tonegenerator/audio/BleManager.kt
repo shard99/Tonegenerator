@@ -9,8 +9,13 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
+import android.os.ParcelUuid
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,13 +50,57 @@ class BleManager(
   var isConnected = false
     private set
 
+  private var isScanning = false
+  private val handler = Handler(Looper.getMainLooper())
+  private val scanTimeoutRunnable =
+    Runnable {
+      if (isScanning) {
+        Log.w(TAG, "Scan timed out after 10s")
+        stopScanning()
+        status = Status.ERROR
+      }
+    }
+
   fun startScanning() {
-    if (bluetoothAdapter == null || !(bluetoothAdapter!!.isEnabled)) return
+    if (bluetoothAdapter == null || !(bluetoothAdapter!!.isEnabled)) {
+      Log.e(TAG, "Bluetooth not enabled or adapter null")
+      status = Status.ERROR
+      return
+    }
+    if (isScanning) {
+      Log.d(TAG, "Scan already in progress, ignoring.")
+      return
+    }
 
     Log.d(TAG, "Starting BLE Scan...")
     status = Status.CONNECTING
+    isScanning = true
     val scanner = bluetoothAdapter!!.bluetoothLeScanner
-    scanner?.startScan(scanCallback)
+
+    val filter = ScanFilter.Builder().setServiceUuid(ParcelUuid(SERVICE_UUID)).build()
+    val settings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+
+    try {
+      scanner?.startScan(listOf(filter), settings, scanCallback)
+      handler.postDelayed(scanTimeoutRunnable, 10000)
+    } catch (e: Exception) {
+      Log.e(TAG, "Failed to start scan: ${e.message}")
+      status = Status.ERROR
+      isScanning = false
+    }
+  }
+
+  fun stopScanning() {
+    handler.removeCallbacks(scanTimeoutRunnable)
+    if (!isScanning) return
+    Log.d(TAG, "Stopping BLE Scan...")
+    try {
+      val scanner = bluetoothAdapter!!.bluetoothLeScanner
+      scanner?.stopScan(scanCallback)
+    } catch (e: Exception) {
+      Log.e(TAG, "Error stopping scan: ${e.message}")
+    }
+    isScanning = false
   }
 
   private val scanCallback =
@@ -60,22 +109,26 @@ class BleManager(
         callbackType: Int,
         result: ScanResult,
       ) {
-        val device = result.device
-        if (device.name == "LF Tonegen Companion") {
-          Log.d(TAG, "Found companion device. Connecting...")
-          bluetoothAdapter?.bluetoothLeScanner?.stopScan(this)
-          connectToDevice(device)
-        }
+        val deviceAddress = result.device.address
+        Log.d(TAG, "Found target device: $deviceAddress. Connecting...")
+        stopScanning()
+        connectToDevice(result.device)
+      }
+
+      override fun onBatchScanResults(results: MutableList<ScanResult>) {
+        results.forEach { onScanResult(ScanSettings.CALLBACK_TYPE_ALL_MATCHES, it) }
       }
 
       override fun onScanFailed(errorCode: Int) {
         Log.e(TAG, "Scan failed with error: $errorCode")
         status = Status.ERROR
+        isScanning = false
       }
     }
 
   private fun connectToDevice(device: BluetoothDevice) {
-    bluetoothGatt = device.connectGatt(context, false, gattCallback)
+    // Using TRANSPORT_LE to ensure we don't accidentally try classic BT
+    bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
   }
 
   private val gattCallback =
@@ -97,6 +150,8 @@ class BleManager(
           freqCharacteristic = null
           volCharacteristic = null
           playCharacteristic = null
+          gatt.close()
+          if (bluetoothGatt == gatt) bluetoothGatt = null
         }
       }
 
@@ -171,8 +226,16 @@ class BleManager(
   }
 
   fun disconnect() {
-    bluetoothGatt?.disconnect()
-    bluetoothGatt?.close()
+    stopScanning()
+    bluetoothGatt?.let { gatt ->
+      Log.d(TAG, "Closing GATT connection...")
+      try {
+        gatt.disconnect()
+        gatt.close()
+      } catch (e: Exception) {
+        Log.e(TAG, "Error during GATT close: ${e.message}")
+      }
+    }
     bluetoothGatt = null
     status = Status.DISCONNECTED
     isConnected = false

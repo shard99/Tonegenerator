@@ -229,6 +229,8 @@ class AppViewModel(
       updatePlayingState(false)
 
       if (useRemote) {
+        // Short delay to let Bluetooth hardware settle and companion start advertising
+        delay(500)
         bleManager.startScanning()
       } else {
         bleManager.disconnect()

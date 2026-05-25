@@ -20,6 +20,7 @@ This document tracks architectural decisions and best practices to maintain code
 - **Source Code**: The source code for the remote generator hardware (companion) is available on a private GitHub-repo
   at [https://github.com/shard99/lf-tonegen-companion](https://github.com/shard99/lf-tonegen-companion).
 - **BLE Logging**: The hardware companion supports sending real-time logs via a dedicated BLE characteristic (`7ba37b12-1f7c-47bc-9407-3bd442084c6e`). The Android app can subscribe to notifications from this characteristic to monitor the internal state of the generator.
+- **Companion Connectivity**: The companion hardware must explicitly restart advertising upon disconnection to allow the Android app to reconnect. If it fails to do so, the app may get stuck in the "Connecting" (Yellow) state.
 
 ## Kotlin Best Practices
 
