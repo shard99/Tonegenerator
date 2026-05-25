@@ -16,8 +16,8 @@ android {
     applicationId = "dev.shard9.tonegenerator"
     minSdk = 26
     targetSdk = 36
-    versionCode = 26
-    versionName = "2.0.3"
+    versionCode = 27
+    versionName = "2.0.4"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
@@ -75,10 +75,18 @@ dependencies {
   // Dependency constraints to address high-severity Dependabot security alerts
   constraints {
     implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-    implementation("io.netty:netty-codec-http2:4.2.13.Final")
-    implementation("io.netty:netty-codec-http:4.2.13.Final")
+    implementation("io.netty:netty-codec-http2:4.2.14.Final")
+    implementation("io.netty:netty-codec-http:4.2.14.Final")
+    implementation("io.netty:netty-handler:4.2.14.Final")
     implementation("org.bitbucket.b_c:jose4j:0.9.6")
     implementation("org.jdom:jdom2:2.0.6.1")
-    implementation("io.netty:netty-handler:4.2.13.Final")
+    implementation("com.google.protobuf:protobuf-java:4.35.0")
+    implementation("commons-io:commons-io:2.22.0")
+    implementation("org.apache.commons:commons-compress:1.28.0")
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+    implementation("com.google.code.gson:gson:2.14.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    implementation("com.google.guava:guava:33.6.0-jre")
+    implementation("org.json:json:20260522")
   }
 }
