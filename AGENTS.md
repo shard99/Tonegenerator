@@ -14,6 +14,8 @@ This document tracks architectural decisions and best practices to maintain code
   `defaultConfig.versionCode` by 1 and increase the patch number of `versionName` (e.g., 1.1.1 -> 1.1.2).
 - **Git Awareness**: Before incrementing, check if the version numbers have already been modified in uncommitted changes
   to prevent duplicate increments during the same development session.
+- **Code Style**: Always run `./gradlew ktlintFormat` before committing any Kotlin code changes to ensure adherence to
+  the project's style guidelines.
 
 ## Companion Project
 
