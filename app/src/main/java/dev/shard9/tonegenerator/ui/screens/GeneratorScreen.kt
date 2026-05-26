@@ -195,6 +195,124 @@ fun GeneratorScreen(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.SpaceEvenly,
     ) {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+      ) {
+        Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
+        Spacer(modifier = Modifier.width(8.dp))
+        LinearProgressIndicator(
+          progress = { toneGenerator.measuredLevel.toFloat() },
+          modifier =
+            Modifier
+              .weight(1f)
+              .height(12.dp),
+          color = GreenX,
+          trackColor = Color.LightGray,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        val measuredValue = toneGenerator.measuredLevel * 10.0
+        Text(
+          text = String.format(Locale.US, "%.1f", measuredValue),
+          fontSize = 21.sp,
+          fontWeight = FontWeight.Bold,
+          modifier = Modifier.width(45.dp),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        IconButton(
+          onClick = { showPositionPicker = true },
+          modifier = Modifier.size(48.dp),
+          enabled = viewModel.isPlaying,
+        ) {
+          Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = "Save to position",
+            tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
+            modifier = Modifier.size(36.dp),
+          )
+        }
+      }
+
+      Box(
+        modifier =
+          Modifier
+            .fillMaxWidth(0.8f)
+            .height(100.dp),
+      ) {
+        if (viewModel.showLogs && viewModel.useRemoteGenerator) {
+          val listState = rememberLazyListState()
+          LaunchedEffect(viewModel.bleLogs.size) {
+            if (viewModel.bleLogs.isNotEmpty()) {
+              listState.animateScrollToItem(viewModel.bleLogs.size - 1)
+            }
+          }
+          LazyColumn(
+            state = listState,
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
+                .padding(4.dp),
+          ) {
+            items(viewModel.bleLogs) { logMsg ->
+              Text(
+                text = logMsg,
+                fontSize = 10.sp,
+                fontFamily = FontFamily.Monospace,
+                lineHeight = 12.sp,
+                modifier = Modifier.padding(vertical = 1.dp),
+              )
+            }
+          }
+        } else {
+          MeasurementGraph(
+            dataPoints = viewModel.graphData,
+            startTime = viewModel.sessionStartTime,
+            durationSeconds = viewModel.graphDuration,
+            modifier = Modifier.fillMaxSize(),
+          )
+        }
+
+        if (viewModel.useRemoteGenerator) {
+          Row(
+            modifier =
+              Modifier
+                .align(Alignment.TopEnd)
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+          ) {
+            Icon(
+              imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
+              contentDescription = "Toggle View",
+              modifier =
+                Modifier
+                  .size(32.dp)
+                  .padding(top = 8.dp),
+              tint = Color.Gray,
+            )
+            Spacer(modifier = Modifier.width(28.dp))
+            Switch(
+              checked = viewModel.showLogs,
+              onCheckedChange = { viewModel.toggleShowLogs() },
+              modifier =
+                Modifier
+                  .size(32.dp)
+                  .padding(top = 8.dp, end = 32.dp),
+              thumbContent = {
+                Box(
+                  modifier =
+                    Modifier
+                      .size(SwitchDefaults.IconSize)
+                      .background(Color.Transparent),
+                )
+              },
+            )
+          }
+        }
+      }
       // Generator Toggle
       Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -366,125 +484,6 @@ fun GeneratorScreen(
           )
         }
       }
-
-      Spacer(modifier = Modifier.height(8.dp))
-
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-      ) {
-        Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
-        Spacer(modifier = Modifier.width(8.dp))
-        LinearProgressIndicator(
-          progress = { toneGenerator.measuredLevel.toFloat() },
-          modifier =
-            Modifier
-              .weight(1f)
-              .height(12.dp),
-          color = GreenX,
-          trackColor = Color.LightGray,
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        val measuredValue = toneGenerator.measuredLevel * 10.0
-        Text(
-          text = String.format(Locale.US, "%.1f", measuredValue),
-          fontSize = 21.sp,
-          fontWeight = FontWeight.Bold,
-          modifier = Modifier.width(45.dp),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        IconButton(
-          onClick = { showPositionPicker = true },
-          modifier = Modifier.size(48.dp),
-          enabled = viewModel.isPlaying,
-        ) {
-          Icon(
-            imageVector = Icons.Default.Star,
-            contentDescription = "Save to position",
-            tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
-            modifier = Modifier.size(36.dp),
-          )
-        }
-      }
-
-      Spacer(modifier = Modifier.height(16.dp))
-
-      Box(
-        modifier =
-          Modifier
-            .fillMaxWidth(0.8f)
-            .height(100.dp),
-      ) {
-        if (viewModel.showLogs && viewModel.useRemoteGenerator) {
-          val listState = rememberLazyListState()
-          LaunchedEffect(viewModel.bleLogs.size) {
-            if (viewModel.bleLogs.isNotEmpty()) {
-              listState.animateScrollToItem(viewModel.bleLogs.size - 1)
-            }
-          }
-          LazyColumn(
-            state = listState,
-            modifier =
-              Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
-                .padding(4.dp),
-          ) {
-            items(viewModel.bleLogs) { logMsg ->
-              Text(
-                text = logMsg,
-                fontSize = 10.sp,
-                fontFamily = FontFamily.Monospace,
-                lineHeight = 12.sp,
-                modifier = Modifier.padding(vertical = 1.dp),
-              )
-            }
-          }
-        } else {
-          MeasurementGraph(
-            dataPoints = viewModel.graphData,
-            startTime = viewModel.sessionStartTime,
-            durationSeconds = viewModel.graphDuration,
-            modifier = Modifier.fillMaxSize(),
-          )
-        }
-
-        if (viewModel.useRemoteGenerator) {
-          Row(
-            modifier =
-              Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
-              contentDescription = "Toggle View",
-              modifier = Modifier.size(16.dp),
-              tint = Color.Gray,
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Switch(
-              checked = viewModel.showLogs,
-              onCheckedChange = { viewModel.toggleShowLogs() },
-              modifier = Modifier.size(32.dp),
-              thumbContent = {
-                Box(
-                  modifier =
-                    Modifier
-                      .size(SwitchDefaults.IconSize)
-                      .background(Color.Transparent),
-                )
-              },
-            )
-          }
-        }
-      }
-
-      Spacer(modifier = Modifier.height(16.dp))
 
       val channels = listOf("Left", "Both", "Right")
       SingleChoiceSegmentedButtonRow(
