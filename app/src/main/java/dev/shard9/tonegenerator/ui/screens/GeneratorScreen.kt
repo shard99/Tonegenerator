@@ -125,9 +125,11 @@ fun GeneratorScreen(
   val permissionLauncher =
     rememberLauncherForActivityResult(
       ActivityResultContracts.RequestPermission(),
-    ) { _ ->
-      toneGenerator.start(scope, context)
-      viewModel.updatePlayingState(true)
+    ) { granted ->
+      if (granted) {
+        toneGenerator.start(scope, context, playbackEnabled = !viewModel.useRemoteGenerator)
+        viewModel.updatePlayingState(true)
+      }
     }
 
   val blePermissionLauncher =
@@ -518,21 +520,16 @@ fun GeneratorScreen(
             }
             viewModel.updatePlayingState(false)
           } else {
-            if (viewModel.useRemoteGenerator) {
-              // Start remote play is just sending frequency and volume
-              viewModel.updatePlayingState(true)
+            if (ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO,
+              ) != PackageManager.PERMISSION_GRANTED
+            ) {
+              permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
             } else {
-              if (ContextCompat.checkSelfPermission(
-                  context,
-                  android.Manifest.permission.RECORD_AUDIO,
-                ) != PackageManager.PERMISSION_GRANTED
-              ) {
-                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-              } else {
-                toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
-                toneGenerator.start(scope, context)
-                viewModel.updatePlayingState(true)
-              }
+              toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
+              toneGenerator.start(scope, context, playbackEnabled = !viewModel.useRemoteGenerator)
+              viewModel.updatePlayingState(true)
             }
           }
         },

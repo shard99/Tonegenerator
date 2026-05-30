@@ -42,6 +42,7 @@ class ToneGenerator {
   fun start(
     scope: CoroutineScope,
     context: Context,
+    playbackEnabled: Boolean = true,
   ) {
     if (isPlaying && !isStopping) return
     if (isPlaying && isStopping) {
@@ -52,7 +53,10 @@ class ToneGenerator {
     isPlaying = true
     isStopping = false
 
-    startPlayback(scope)
+    if (playbackEnabled) {
+      startPlayback(scope)
+    }
+
     if (ContextCompat.checkSelfPermission(
         context,
         android.Manifest.permission.RECORD_AUDIO,
@@ -255,7 +259,12 @@ class ToneGenerator {
 
   fun stop() {
     if (isPlaying) {
-      isStopping = true
+      if (audioTrack == null) {
+        // No playback to fade out, stop immediately
+        isPlaying = false
+      } else {
+        isStopping = true
+      }
     }
   }
 
