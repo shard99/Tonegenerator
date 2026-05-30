@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import dev.shard9.tonegenerator.AppLanguage
 import dev.shard9.tonegenerator.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,6 +18,7 @@ class SettingsRepository(
   private val minFreqKey = intPreferencesKey("min_freq")
   private val maxFreqKey = intPreferencesKey("max_freq")
   private val themeModeKey = stringPreferencesKey("theme_mode")
+  private val languageKey = stringPreferencesKey("app_language")
   private val graphDurationKey = intPreferencesKey("graph_duration")
   private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
   private val volumeKey = intPreferencesKey("volume")
@@ -27,6 +29,7 @@ class SettingsRepository(
     val minFreq: Int,
     val maxFreq: Int,
     val themeMode: ThemeMode,
+    val language: AppLanguage,
     val graphDuration: Int,
     val graphSmoothing: Int,
     val volume: Int,
@@ -54,6 +57,7 @@ class SettingsRepository(
         }
 
       val themeMode = ThemeMode.valueOf(prefs[themeModeKey] ?: ThemeMode.AUTO.name)
+      val language = AppLanguage.valueOf(prefs[languageKey] ?: AppLanguage.SYSTEM.name)
       val graphDuration = prefs[graphDurationKey] ?: 3
       val graphSmoothing = prefs[graphSmoothingKey] ?: 3
 
@@ -70,6 +74,7 @@ class SettingsRepository(
         minFreq = minFreq,
         maxFreq = maxFreq,
         themeMode = themeMode,
+        language = language,
         graphDuration = graphDuration,
         graphSmoothing = graphSmoothing,
         volume = volume,
@@ -100,6 +105,10 @@ class SettingsRepository(
 
   suspend fun updateTheme(mode: ThemeMode) {
     dataStore.edit { it[themeModeKey] = mode.name }
+  }
+
+  suspend fun updateLanguage(language: AppLanguage) {
+    dataStore.edit { it[languageKey] = language.name }
   }
 
   suspend fun updateGraphDuration(duration: Int) {

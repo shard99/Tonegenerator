@@ -1,3 +1,60 @@
 <resources>
     <string name="app_name">LF Tonegen</string>
+    <string name="select_position">Select Position to Store Value</string>
+    <string name="stored_value">Stored: %s</string>
+    <string name="mic_level">Mic Level:</string>
+    <string name="left">Left</string>
+    <string name="both">Both</string>
+    <string name="right">Right</string>
+    <string name="stop">STOP</string>
+    <string name="play">PLAY</string>
+    <string name="phone">Phone</string>
+    <string name="remote">Remote</string>
+    <string name="connection_status">Connection Status</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="disconnected_desc">Not connected to any device.</string>
+    <string name="connecting">Connecting</string>
+    <string name="connecting_desc">Searching for companion hardware.</string>
+    <string name="connected">Connected</string>
+    <string name="connected_desc">Connection established, syncing...</string>
+    <string name="synced">Synced</string>
+    <string name="synced_desc">Ready to generate remote tones.</string>
+    <string name="error">Error</string>
+    <string name="error_desc">Connection failed or timed out.</string>
+    <string name="ok">OK</string>
+    <string name="toggle_view">Toggle View</string>
+    <string name="save_to_position">Save to position</string>
+    <string name="hz">Hz</string>
+    <string name="vol_label">Vol: %d%%</string>
+    <string name="volume_percent">Volume: %d%%</string>
+
+    <string name="settings">Settings</string>
+    <string name="theme_mode">Theme Mode</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_auto">Auto</string>
+    <string name="theme_dark">Dark</string>
+    <string name="freq_range_hz">Frequency Range (Hz)</string>
+    <string name="min">Min</string>
+    <string name="max">Max</string>
+    <string name="graph_duration">Graph Window Duration: %ds</string>
+    <string name="graph_smoothing">Graph Smoothing (Mean of X): %d</string>
+    <string name="num_positions">Number of Positions: %d</string>
+    <string name="position_names">Position Names:</string>
+    <string name="position_name_label">Position %d Name</string>
+    <string name="reset_defaults">Reset to Defaults</string>
+    <string name="language">Language</string>
+    <string name="lang_system">System</string>
+    <string name="lang_english">English</string>
+    <string name="lang_norwegian">Norwegian</string>
+
+    <string name="about">About</string>
+    <string name="developer">Developer: %s</string>
+    <string name="version">Version: %s</string>
+    <string name="date">Date: %s</string>
+    <string name="about_desc">A precise tool for debugging low frequency room acoustics.</string>
+
+    <string name="results_history">Results History</string>
+    <string name="no_results">No results yet</string>
+    <string name="copy_all">Copy All to Clipboard</string>
+    <string name="clear_history">Clear history</string>
 </resources>

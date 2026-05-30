@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.shard9.tonegenerator.AppLanguage
 import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.data.SettingsRepository
@@ -35,6 +36,8 @@ class AppViewModel(
   var maxFreq by mutableIntStateOf(400)
     private set
   var themeMode by mutableStateOf(ThemeMode.AUTO)
+    private set
+  var language by mutableStateOf(AppLanguage.SYSTEM)
     private set
   var graphDuration by mutableIntStateOf(3)
     private set
@@ -90,6 +93,7 @@ class AppViewModel(
         minFreq = settings.minFreq
         maxFreq = settings.maxFreq
         themeMode = settings.themeMode
+        language = settings.language
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
         volume = settings.volume
@@ -242,6 +246,12 @@ class AppViewModel(
   fun updateTheme(mode: ThemeMode) {
     viewModelScope.launch {
       repository.updateTheme(mode)
+    }
+  }
+
+  fun updateLanguage(newLanguage: AppLanguage) {
+    viewModelScope.launch {
+      repository.updateLanguage(newLanguage)
     }
   }
 

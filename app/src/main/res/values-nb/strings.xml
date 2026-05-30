@@ -1,0 +1,60 @@
+<resources>
+    <string name="app_name">LF Tonegen</string>
+    <string name="select_position">Velg posisjon for å lagre verdi</string>
+    <string name="stored_value">Lagret: %s</string>
+    <string name="mic_level">Mik-nivå:</string>
+    <string name="left">Venstre</string>
+    <string name="both">Begge</string>
+    <string name="right">Høyre</string>
+    <string name="stop">STOPP</string>
+    <string name="play">SPILL</string>
+    <string name="phone">Mobil</string>
+    <string name="remote">Fjernstyrt</string>
+    <string name="connection_status">Tilkoblingsstatus</string>
+    <string name="disconnected">Frakoblet</string>
+    <string name="disconnected_desc">Ikke koblet til noen enhet.</string>
+    <string name="connecting">Kobler til</string>
+    <string name="connecting_desc">Søker etter maskinvare.</string>
+    <string name="connected">Tilkoblet</string>
+    <string name="connected_desc">Tilkobling opprettet, synkroniserer…</string>
+    <string name="synced">Synkronisert</string>
+    <string name="synced_desc">Klar til å generere toner.</string>
+    <string name="error">Feil</string>
+    <string name="error_desc">Tilkobling mislyktes eller tidsavbrudd.</string>
+    <string name="ok">OK</string>
+    <string name="toggle_view">Bytt visning</string>
+    <string name="save_to_position">Lagre til posisjon</string>
+    <string name="hz">Hz</string>
+    <string name="vol_label">Vol: %d%%</string>
+    <string name="volume_percent">Volum: %d%%</string>
+
+    <string name="settings">Innstillinger</string>
+    <string name="theme_mode">Tema</string>
+    <string name="theme_light">Lys</string>
+    <string name="theme_auto">Auto</string>
+    <string name="theme_dark">Mørk</string>
+    <string name="freq_range_hz">Frekvensområde (Hz)</string>
+    <string name="min">Min</string>
+    <string name="max">Maks</string>
+    <string name="graph_duration">Graf-vindu varighet: %ds</string>
+    <string name="graph_smoothing">Graf-utjevning (snitt av X): %d</string>
+    <string name="num_positions">Antall posisjoner: %d</string>
+    <string name="position_names">Posisjonsnavn:</string>
+    <string name="position_name_label">Navn på posisjon %d</string>
+    <string name="reset_defaults">Tilbakestill til standard</string>
+    <string name="language">Språk</string>
+    <string name="lang_system">Systemspråk</string>
+    <string name="lang_english">Engelsk</string>
+    <string name="lang_norwegian">Norsk</string>
+
+    <string name="about">Om</string>
+    <string name="developer">Utvikler: %s</string>
+    <string name="version">Versjon: %s</string>
+    <string name="date">Dato: %s</string>
+    <string name="about_desc">Et presist verktøy for feilsøking av romakustikk ved lave frekvenser.</string>
+
+    <string name="results_history">Historikk</string>
+    <string name="no_results">Ingen resultater ennå</string>
+    <string name="copy_all">Kopier alt til utklippstavlen</string>
+    <string name="clear_history">Slett historikk</string>
+</resources>
