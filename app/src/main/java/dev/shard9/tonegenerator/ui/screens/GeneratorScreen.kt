@@ -69,9 +69,11 @@ import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.audio.BleManager
@@ -79,6 +81,7 @@ import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
 import dev.shard9.tonegenerator.ui.components.MeasurementGraph
 import dev.shard9.tonegenerator.ui.theme.GreenX
+import dev.shard9.tonegenerator.ui.theme.LFTonegenTheme
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -143,39 +146,6 @@ fun GeneratorScreen(
       }
     }
 
-  if (showPositionPicker) {
-    ModalBottomSheet(onDismissRequest = { showPositionPicker = false }) {
-      Column(
-        modifier =
-          Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .padding(bottom = 32.dp),
-      ) {
-        Text(stringResource(R.string.select_position), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(16.dp))
-        for (i in 0 until viewModel.positionCount) {
-          ListItem(
-            headlineContent = { Text(viewModel.positionNames[i]) },
-            supportingContent = {
-              viewModel.currentSessionMeasurements[i]?.let {
-                Text(stringResource(R.string.stored_value, String.format(Locale.US, "%.1f", it)))
-              }
-            },
-            modifier =
-              Modifier.clickable {
-                val value = toneGenerator.measuredLevel * 10.0
-                viewModel.saveMeasurement(i, value)
-                confirmationText =
-                  "${viewModel.positionNames[i]}: ${String.format(Locale.US, "%.1f", value)}"
-                showPositionPicker = false
-              },
-          )
-        }
-      }
-    }
-  }
-
   LaunchedEffect(audioManager) {
     val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
     while (true) {
@@ -190,6 +160,148 @@ fun GeneratorScreen(
     }
   }
 
+  GeneratorContent(
+    measuredLevel = toneGenerator.measuredLevel,
+    selectedFrequency = viewModel.selectedFrequency,
+    volume = viewModel.volume,
+    isPlaying = viewModel.isPlaying,
+    useRemoteGenerator = viewModel.useRemoteGenerator,
+    showLogs = viewModel.showLogs,
+    bleLogs = viewModel.bleLogs,
+    graphData = viewModel.graphData,
+    sessionStartTime = viewModel.sessionStartTime,
+    graphDuration = viewModel.graphDuration,
+    bleStatus = viewModel.bleStatus,
+    channelSelection = viewModel.channelSelection,
+    positionCount = viewModel.positionCount,
+    positionNames = viewModel.positionNames,
+    currentSessionMeasurements = viewModel.currentSessionMeasurements,
+    confirmationVisible = confirmationVisible,
+    confirmationText = confirmationText,
+    showPositionPicker = showPositionPicker,
+    showBleInfoDialog = showBleInfoDialog,
+    onTogglePositionPicker = { showPositionPicker = it },
+    onToggleBleInfoDialog = { showBleInfoDialog = it },
+    onSaveMeasurement = { index ->
+      val value = toneGenerator.measuredLevel * 10.0
+      viewModel.saveMeasurement(index, value)
+      confirmationText = "${viewModel.positionNames[index]}: ${String.format(Locale.US, "%.1f", value)}"
+      showPositionPicker = false
+    },
+    onTogglePlaying = {
+      if (viewModel.isPlaying) {
+        toneGenerator.stop()
+        viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
+          scope.launch {
+            val csvData = "${viewModel.getCSVHeader()}\n$result"
+            clipboard.setClipEntry(ClipData.newPlainText("Tone Results", csvData).toClipEntry())
+          }
+        }
+        viewModel.updatePlayingState(false)
+      } else {
+        if (ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.RECORD_AUDIO,
+          ) != PackageManager.PERMISSION_GRANTED
+        ) {
+          permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+        } else {
+          toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
+          toneGenerator.start(scope, context, playbackEnabled = !viewModel.useRemoteGenerator)
+          viewModel.updatePlayingState(true)
+        }
+      }
+    },
+    onToggleUseRemote = { useRemote ->
+      if (viewModel.isPlaying) {
+        toneGenerator.stop()
+      }
+      if (useRemote) {
+        val permissions =
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            arrayOf(
+              android.Manifest.permission.BLUETOOTH_SCAN,
+              android.Manifest.permission.BLUETOOTH_CONNECT,
+            )
+          } else {
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
+          }
+
+        val missing =
+          permissions.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+          }
+
+        if (missing.isEmpty()) {
+          viewModel.updateUseRemoteGenerator(true)
+        } else {
+          blePermissionLauncher.launch(missing.toTypedArray())
+        }
+      } else {
+        viewModel.updateUseRemoteGenerator(false)
+      }
+    },
+    onToggleShowLogs = { viewModel.toggleShowLogs() },
+    onFrequencyChange = {
+      viewModel.updateSelectedFrequency(it)
+      toneGenerator.setFrequency(it.toDouble())
+    },
+    onVolumeChange = { newVol ->
+      viewModel.updateVolume(newVol)
+      if (!viewModel.useRemoteGenerator) {
+        val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(
+          AudioManager.STREAM_MUSIC,
+          ((newVol / 100f) * max).toInt(),
+          0,
+        )
+      }
+    },
+    onChannelChange = { index ->
+      viewModel.updateChannelSelection(index)
+      toneGenerator.channelSelection = index
+    },
+    minFreq = viewModel.minFreq,
+    maxFreq = viewModel.maxFreq,
+    modifier = modifier,
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GeneratorContent(
+  measuredLevel: Double,
+  selectedFrequency: Float,
+  volume: Int,
+  isPlaying: Boolean,
+  useRemoteGenerator: Boolean,
+  showLogs: Boolean,
+  bleLogs: List<String>,
+  graphData: List<AppViewModel.DataPoint>,
+  sessionStartTime: Long,
+  graphDuration: Int,
+  bleStatus: BleManager.Status,
+  channelSelection: Int,
+  positionCount: Int,
+  positionNames: List<String>,
+  currentSessionMeasurements: Map<Int, Double>,
+  confirmationVisible: Boolean,
+  confirmationText: String,
+  showPositionPicker: Boolean,
+  showBleInfoDialog: Boolean,
+  onTogglePositionPicker: (Boolean) -> Unit,
+  onToggleBleInfoDialog: (Boolean) -> Unit,
+  onSaveMeasurement: (Int) -> Unit,
+  onTogglePlaying: () -> Unit,
+  onToggleUseRemote: (Boolean) -> Unit,
+  onToggleShowLogs: () -> Unit,
+  onFrequencyChange: (Float) -> Unit,
+  onVolumeChange: (Int) -> Unit,
+  onChannelChange: (Int) -> Unit,
+  minFreq: Int,
+  maxFreq: Int,
+  modifier: Modifier = Modifier,
+) {
   Box(modifier = modifier.fillMaxSize()) {
     Column(
       modifier =
@@ -209,7 +321,7 @@ fun GeneratorScreen(
         Text(stringResource(R.string.mic_level), fontSize = 18.sp, color = Color.Gray)
         Spacer(modifier = Modifier.width(8.dp))
         LinearProgressIndicator(
-          progress = { toneGenerator.measuredLevel.toFloat() },
+          progress = { measuredLevel.toFloat() },
           modifier =
             Modifier
               .weight(1f)
@@ -218,7 +330,7 @@ fun GeneratorScreen(
           trackColor = Color.LightGray,
         )
         Spacer(modifier = Modifier.width(8.dp))
-        val measuredValue = toneGenerator.measuredLevel * 10.0
+        val measuredValue = measuredLevel * 10.0
         Text(
           text = String.format(Locale.US, "%.1f", measuredValue),
           fontSize = 21.sp,
@@ -227,14 +339,14 @@ fun GeneratorScreen(
         )
         Spacer(modifier = Modifier.width(8.dp))
         IconButton(
-          onClick = { showPositionPicker = true },
+          onClick = { onTogglePositionPicker(true) },
           modifier = Modifier.size(48.dp),
-          enabled = viewModel.isPlaying,
+          enabled = isPlaying,
         ) {
           Icon(
             imageVector = Icons.Default.Star,
             contentDescription = stringResource(R.string.save_to_position),
-            tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
+            tint = if (isPlaying) GreenX else Color.LightGray,
             modifier = Modifier.size(36.dp),
           )
         }
@@ -243,14 +355,14 @@ fun GeneratorScreen(
       Box(
         modifier =
           Modifier
-            .fillMaxWidth(0.8f)
-            .height(100.dp),
+            .fillMaxWidth(0.9f)
+            .height(120.dp),
       ) {
-        if (viewModel.showLogs && viewModel.useRemoteGenerator) {
+        if (showLogs && useRemoteGenerator) {
           val listState = rememberLazyListState()
-          LaunchedEffect(viewModel.bleLogs.size) {
-            if (viewModel.bleLogs.isNotEmpty()) {
-              listState.animateScrollToItem(viewModel.bleLogs.size - 1)
+          LaunchedEffect(bleLogs.size) {
+            if (bleLogs.isNotEmpty()) {
+              listState.animateScrollToItem(bleLogs.size - 1)
             }
           }
           LazyColumn(
@@ -258,10 +370,10 @@ fun GeneratorScreen(
             modifier =
               Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small)
-                .padding(4.dp),
+                .padding(4.dp)
+                .background(Color.Black.copy(alpha = 0.05f), MaterialTheme.shapes.small),
           ) {
-            items(viewModel.bleLogs) { logMsg ->
+            items(bleLogs) { logMsg ->
               Text(
                 text = logMsg,
                 fontSize = 10.sp,
@@ -273,23 +385,24 @@ fun GeneratorScreen(
           }
         } else {
           MeasurementGraph(
-            dataPoints = viewModel.graphData,
-            startTime = viewModel.sessionStartTime,
-            durationSeconds = viewModel.graphDuration,
+            dataPoints = graphData,
+            startTime = sessionStartTime,
+            durationSeconds = graphDuration,
             modifier = Modifier.fillMaxSize(),
           )
         }
 
-        if (viewModel.useRemoteGenerator) {
+        if (useRemoteGenerator) {
           Row(
             modifier =
               Modifier
                 .align(Alignment.TopEnd)
-                .padding(4.dp),
+                .padding(top = 7.dp, end = 24.dp)
+                .zIndex(1f),
             verticalAlignment = Alignment.CenterVertically,
           ) {
             Icon(
-              imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
+              imageVector = if (showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
               contentDescription = stringResource(R.string.toggle_view),
               modifier =
                 Modifier
@@ -297,14 +410,13 @@ fun GeneratorScreen(
                   .padding(top = 8.dp),
               tint = Color.Gray,
             )
-            Spacer(modifier = Modifier.width(28.dp))
+            Spacer(modifier = Modifier.width(2.dp))
             Switch(
-              checked = viewModel.showLogs,
-              onCheckedChange = { viewModel.toggleShowLogs() },
+              checked = showLogs,
+              onCheckedChange = { onToggleShowLogs() },
               modifier =
                 Modifier
-                  .size(32.dp)
-                  .padding(top = 8.dp, end = 32.dp),
+                  .padding(top = 8.dp, end = 10.dp),
               thumbContent = {
                 Box(
                   modifier =
@@ -317,6 +429,36 @@ fun GeneratorScreen(
           }
         }
       }
+
+      if (showPositionPicker) {
+        ModalBottomSheet(onDismissRequest = { onTogglePositionPicker(false) }) {
+          Column(
+            modifier =
+              Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .padding(bottom = 32.dp),
+          ) {
+            Text(stringResource(R.string.select_position), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
+            for (i in 0 until positionCount) {
+              ListItem(
+                headlineContent = { Text(positionNames[i]) },
+                supportingContent = {
+                  currentSessionMeasurements[i]?.let {
+                    Text(stringResource(R.string.stored_value, String.format(Locale.US, "%.1f", it)))
+                  }
+                },
+                modifier =
+                  Modifier.clickable {
+                    onSaveMeasurement(i)
+                  },
+              )
+            }
+          }
+        }
+      }
+
       // Generator Toggle
       Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -325,50 +467,22 @@ fun GeneratorScreen(
       ) {
         Text(
           stringResource(R.string.phone),
-          fontWeight = if (!viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
+          fontWeight = if (!useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
         )
         Switch(
-          checked = viewModel.useRemoteGenerator,
-          onCheckedChange = { useRemote ->
-            if (viewModel.isPlaying) {
-              toneGenerator.stop()
-            }
-            if (useRemote) {
-              val permissions =
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                  arrayOf(
-                    android.Manifest.permission.BLUETOOTH_SCAN,
-                    android.Manifest.permission.BLUETOOTH_CONNECT,
-                  )
-                } else {
-                  arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
-                }
-
-              val missing =
-                permissions.filter {
-                  ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-                }
-
-              if (missing.isEmpty()) {
-                viewModel.updateUseRemoteGenerator(true)
-              } else {
-                blePermissionLauncher.launch(missing.toTypedArray())
-              }
-            } else {
-              viewModel.updateUseRemoteGenerator(false)
-            }
-          },
+          checked = useRemoteGenerator,
+          onCheckedChange = { onToggleUseRemote(it) },
           modifier = Modifier.padding(horizontal = 8.dp),
         )
         Text(
           stringResource(R.string.remote),
-          fontWeight = if (viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
+          fontWeight = if (useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
         )
 
-        if (viewModel.useRemoteGenerator) {
+        if (useRemoteGenerator) {
           Spacer(modifier = Modifier.width(16.dp))
           val statusColor =
-            when (viewModel.bleStatus) {
+            when (bleStatus) {
               BleManager.Status.DISCONNECTED -> Color.Gray
               BleManager.Status.CONNECTING -> Color.Yellow
               BleManager.Status.CONNECTED -> Color.Blue
@@ -381,7 +495,7 @@ fun GeneratorScreen(
               Modifier
                 .size(18.dp)
                 .background(statusColor, CircleShape)
-                .clickable { showBleInfoDialog = true },
+                .clickable { onToggleBleInfoDialog(true) },
           ) {
             Text(
               text = "i",
@@ -395,7 +509,7 @@ fun GeneratorScreen(
 
       if (showBleInfoDialog) {
         AlertDialog(
-          onDismissRequest = { showBleInfoDialog = false },
+          onDismissRequest = { onToggleBleInfoDialog(false) },
           title = { Text(stringResource(R.string.connection_status)) },
           text = {
             Column {
@@ -411,7 +525,7 @@ fun GeneratorScreen(
             }
           },
           confirmButton = {
-            TextButton(onClick = { showBleInfoDialog = false }) {
+            TextButton(onClick = { onToggleBleInfoDialog(false) }) {
               Text(stringResource(R.string.ok))
             }
           },
@@ -424,13 +538,10 @@ fun GeneratorScreen(
         modifier = Modifier.padding(horizontal = 16.dp),
       ) {
         FrequencyWheel(
-          value = viewModel.selectedFrequency,
-          volume = viewModel.volume,
-          onValueChange = {
-            viewModel.updateSelectedFrequency(it)
-            toneGenerator.setFrequency(it.toDouble())
-          },
-          range = viewModel.minFreq.toFloat()..viewModel.maxFreq.toFloat(),
+          value = selectedFrequency,
+          volume = volume,
+          onValueChange = { onFrequencyChange(it) },
+          range = minFreq.toFloat()..maxFreq.toFloat(),
           size = 240.dp,
         )
 
@@ -444,27 +555,18 @@ fun GeneratorScreen(
               .width(36.dp),
           contentAlignment = Alignment.Center,
         ) {
-          var sliderVolume by remember(viewModel.volume) {
-            mutableFloatStateOf(viewModel.volume.toFloat())
+          var sliderVolume by remember(volume) {
+            mutableFloatStateOf(volume.toFloat())
           }
 
           Slider(
             value = sliderVolume,
             onValueChange = { newVol ->
               sliderVolume = newVol
-              viewModel.updateVolume(newVol.toInt())
-
-              if (!viewModel.useRemoteGenerator) {
-                val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                audioManager.setStreamVolume(
-                  AudioManager.STREAM_MUSIC,
-                  ((newVol / 100f) * max).toInt(),
-                  0,
-                )
-              }
+              onVolumeChange(newVol.toInt())
             },
             onValueChangeFinished = {
-              viewModel.updateVolume(sliderVolume.toInt())
+              onVolumeChange(sliderVolume.toInt())
             },
             valueRange = 0f..100f,
             modifier =
@@ -508,11 +610,8 @@ fun GeneratorScreen(
         channels.forEachIndexed { index, label ->
           SegmentedButton(
             shape = SegmentedButtonDefaults.itemShape(index = index, count = channels.size),
-            onClick = {
-              viewModel.updateChannelSelection(index)
-              toneGenerator.channelSelection = index
-            },
-            selected = viewModel.channelSelection == index,
+            onClick = { onChannelChange(index) },
+            selected = channelSelection == index,
           ) {
             Text(label, fontSize = 12.sp)
           }
@@ -520,33 +619,10 @@ fun GeneratorScreen(
       }
 
       Button(
-        onClick = {
-          if (viewModel.isPlaying) {
-            toneGenerator.stop()
-            viewModel.finishSession(viewModel.selectedFrequency.toDouble()) { result ->
-              scope.launch {
-                val csvData = "${viewModel.getCSVHeader()}\n$result"
-                clipboard.setClipEntry(ClipData.newPlainText("Tone Results", csvData).toClipEntry())
-              }
-            }
-            viewModel.updatePlayingState(false)
-          } else {
-            if (ContextCompat.checkSelfPermission(
-                context,
-                android.Manifest.permission.RECORD_AUDIO,
-              ) != PackageManager.PERMISSION_GRANTED
-            ) {
-              permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-            } else {
-              toneGenerator.setFrequency(viewModel.selectedFrequency.toDouble())
-              toneGenerator.start(scope, context, playbackEnabled = !viewModel.useRemoteGenerator)
-              viewModel.updatePlayingState(true)
-            }
-          }
-        },
+        onClick = { onTogglePlaying() },
         modifier = Modifier.size(110.dp),
       ) {
-        Text(if (viewModel.isPlaying) stringResource(R.string.stop) else stringResource(R.string.play))
+        Text(if (isPlaying) stringResource(R.string.stop) else stringResource(R.string.play))
       }
     }
 
@@ -592,5 +668,90 @@ fun StatusInfoRow(
       Text(label, fontWeight = FontWeight.Bold, fontSize = 14.sp)
       Text(description, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
     }
+  }
+}
+
+@Preview(showBackground = true, name = "Generator Screen - Remote Mode")
+@Composable
+fun GeneratorScreenRemotePreview() {
+  val currentTime = System.currentTimeMillis()
+  LFTonegenTheme {
+    GeneratorContent(
+      measuredLevel = 0.5,
+      selectedFrequency = 100f,
+      volume = 50,
+      isPlaying = true,
+      useRemoteGenerator = true,
+      showLogs = false,
+      bleLogs = emptyList(),
+      graphData =
+        listOf(
+          AppViewModel.DataPoint(currentTime - 2000, 10.0),
+          AppViewModel.DataPoint(currentTime - 1000, 30.0),
+          AppViewModel.DataPoint(currentTime, 20.0),
+        ),
+      sessionStartTime = currentTime - 2000,
+      graphDuration = 10,
+      bleStatus = BleManager.Status.SYNCED,
+      channelSelection = 1,
+      positionCount = 3,
+      positionNames = listOf("Pos 1", "Pos 2", "Pos 3"),
+      currentSessionMeasurements = emptyMap(),
+      confirmationVisible = false,
+      confirmationText = "",
+      showPositionPicker = false,
+      showBleInfoDialog = false,
+      onTogglePositionPicker = {},
+      onToggleBleInfoDialog = {},
+      onSaveMeasurement = {},
+      onTogglePlaying = {},
+      onToggleUseRemote = {},
+      onToggleShowLogs = {},
+      onFrequencyChange = {},
+      onVolumeChange = {},
+      onChannelChange = {},
+      minFreq = 10,
+      maxFreq = 30000,
+    )
+  }
+}
+
+@Preview(showBackground = true, name = "Generator Screen - Log View")
+@Composable
+fun GeneratorScreenLogPreview() {
+  val currentTime = System.currentTimeMillis()
+  LFTonegenTheme {
+    GeneratorContent(
+      measuredLevel = 0.8,
+      selectedFrequency = 1000f,
+      volume = 75,
+      isPlaying = true,
+      useRemoteGenerator = true,
+      showLogs = true,
+      bleLogs = listOf("Connected to ESP32", "Frequency set to 1000Hz", "Measuring level..."),
+      graphData = emptyList(),
+      sessionStartTime = currentTime,
+      graphDuration = 10,
+      bleStatus = BleManager.Status.CONNECTED,
+      channelSelection = 1,
+      positionCount = 3,
+      positionNames = listOf("Pos 1", "Pos 2", "Pos 3"),
+      currentSessionMeasurements = emptyMap(),
+      confirmationVisible = false,
+      confirmationText = "",
+      showPositionPicker = false,
+      showBleInfoDialog = false,
+      onTogglePositionPicker = {},
+      onToggleBleInfoDialog = {},
+      onSaveMeasurement = {},
+      onTogglePlaying = {},
+      onToggleUseRemote = {},
+      onToggleShowLogs = {},
+      onFrequencyChange = {},
+      onVolumeChange = {},
+      onChannelChange = {},
+      minFreq = 10,
+      maxFreq = 30000,
+    )
   }
 }
