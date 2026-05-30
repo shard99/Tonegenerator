@@ -8,8 +8,8 @@
     <string name="right">Right</string>
     <string name="stop">STOP</string>
     <string name="play">PLAY</string>
-    <string name="phone">Phone</string>
-    <string name="remote">Remote</string>
+    <string name="phone">Device</string>
+    <string name="remote">Companion</string>
     <string name="connection_status">Connection Status</string>
     <string name="disconnected">Disconnected</string>
     <string name="disconnected_desc">Not connected to any device.</string>

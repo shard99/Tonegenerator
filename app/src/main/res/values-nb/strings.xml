@@ -8,7 +8,7 @@
     <string name="right">Høyre</string>
     <string name="stop">STOPP</string>
     <string name="play">SPILL</string>
-    <string name="phone">Mobil</string>
+    <string name="phone">Enhet</string>
     <string name="remote">Fjernstyrt</string>
     <string name="connection_status">Tilkoblingsstatus</string>
     <string name="disconnected">Frakoblet</string>
