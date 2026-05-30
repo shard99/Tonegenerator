@@ -15,7 +15,7 @@ buildscript {
       classpath("io.netty:netty-handler-proxy:4.2.14.Final")
       classpath("org.bitbucket.b_c:jose4j:0.9.6")
       classpath("org.jdom:jdom2:2.0.6.1")
-      classpath("ch.qos.logback:logback-core:1.5.16")
+      classpath("ch.qos.logback:logback-core:1.5.25")
       classpath("org.apache.commons:commons-lang3:3.17.0")
     }
   }
