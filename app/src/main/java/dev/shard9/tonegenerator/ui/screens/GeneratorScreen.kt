@@ -397,7 +397,7 @@ fun GeneratorContent(
             modifier =
               Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 7.dp, end = 24.dp)
+                .padding(top = 1.dp, end = 0.dp)
                 .zIndex(1f),
             verticalAlignment = Alignment.CenterVertically,
           ) {
@@ -407,7 +407,7 @@ fun GeneratorContent(
               modifier =
                 Modifier
                   .size(32.dp)
-                  .padding(top = 8.dp),
+                  .padding(top = 0.dp),
               tint = Color.Gray,
             )
             Spacer(modifier = Modifier.width(2.dp))
@@ -416,7 +416,7 @@ fun GeneratorContent(
               onCheckedChange = { onToggleShowLogs() },
               modifier =
                 Modifier
-                  .padding(top = 8.dp, end = 10.dp),
+                  .padding(top = 1.dp, end = 10.dp),
               thumbContent = {
                 Box(
                   modifier =
