@@ -220,7 +220,7 @@ class ToneGenerator {
             if (read > 0) {
               val magSq = calculateGoertzel(buffer, read, frequency)
               val mag = sqrt(magSq)
-              // The last * 1.5 here is just to get larger differences since
+              // The last * 2.0 here is just to get larger differences since
               // we do not need the top end (I hope)
               val normalized = ((mag / (read / 2.0)) * 2.0).coerceIn(0.0, 1.0)
               measuredLevel = normalized
