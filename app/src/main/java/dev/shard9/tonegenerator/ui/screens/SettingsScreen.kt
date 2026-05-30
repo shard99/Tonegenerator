@@ -32,14 +32,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.shard9.tonegenerator.AppLanguage
+import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,11 +57,17 @@ fun SettingsScreen(viewModel: AppViewModel) {
         .verticalScroll(rememberScrollState()),
     horizontalAlignment = Alignment.CenterHorizontally,
   ) {
-    Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(R.string.settings), fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(24.dp))
 
-    Text("Theme Mode", fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.theme_mode), fontWeight = FontWeight.SemiBold)
     val themeModes = listOf(ThemeMode.LIGHT, ThemeMode.AUTO, ThemeMode.DARK)
+    val themeLabels =
+      listOf(
+        stringResource(R.string.theme_light),
+        stringResource(R.string.theme_auto),
+        stringResource(R.string.theme_dark),
+      )
     SingleChoiceSegmentedButtonRow(
       modifier = Modifier.fillMaxWidth(),
     ) {
@@ -69,18 +77,37 @@ fun SettingsScreen(viewModel: AppViewModel) {
           onClick = { viewModel.updateTheme(mode) },
           selected = viewModel.themeMode == mode,
         ) {
-          Text(
-            mode.name.lowercase().replaceFirstChar {
-              if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString()
-            },
-            fontSize = 12.sp,
-          )
+          Text(themeLabels[index], fontSize = 12.sp)
         }
       }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text("Frequency Range (Hz)", fontWeight = FontWeight.SemiBold)
+
+    Text(stringResource(R.string.language), fontWeight = FontWeight.SemiBold)
+    val languages = listOf(AppLanguage.SYSTEM, AppLanguage.ENGLISH, AppLanguage.NORWEGIAN)
+    val languageLabels =
+      listOf(
+        stringResource(R.string.lang_system),
+        stringResource(R.string.lang_english),
+        stringResource(R.string.lang_norwegian),
+      )
+    SingleChoiceSegmentedButtonRow(
+      modifier = Modifier.fillMaxWidth(),
+    ) {
+      languages.forEachIndexed { index, lang ->
+        SegmentedButton(
+          shape = SegmentedButtonDefaults.itemShape(index = index, count = languages.size),
+          onClick = { viewModel.updateLanguage(lang) },
+          selected = viewModel.language == lang,
+        ) {
+          Text(languageLabels[index], fontSize = 12.sp)
+        }
+      }
+    }
+
+    Spacer(modifier = Modifier.height(24.dp))
+    Text(stringResource(R.string.freq_range_hz), fontWeight = FontWeight.SemiBold)
 
     // Local state for free editing
     var minText by remember { mutableStateOf(viewModel.minFreq.toString()) }
@@ -126,7 +153,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         onValueChange = { input ->
           minText = input.filter { it.isDigit() }
         },
-        label = { Text("Min") },
+        label = { Text(stringResource(R.string.min)) },
         keyboardOptions =
           KeyboardOptions(
             keyboardType = KeyboardType.Number,
@@ -149,7 +176,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         onValueChange = { input ->
           maxText = input.filter { it.isDigit() }
         },
-        label = { Text("Max") },
+        label = { Text(stringResource(R.string.max)) },
         keyboardOptions =
           KeyboardOptions(
             keyboardType = KeyboardType.Number,
@@ -170,7 +197,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text("Graph Window Duration: ${viewModel.graphDuration}s", fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.graph_duration, viewModel.graphDuration), fontWeight = FontWeight.SemiBold)
     Slider(
       value = viewModel.graphDuration.toFloat(),
       onValueChange = { viewModel.updateGraphDuration(it.toInt()) },
@@ -180,7 +207,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text("Graph Smoothing (Mean of X): ${viewModel.graphSmoothing}", fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.graph_smoothing, viewModel.graphSmoothing), fontWeight = FontWeight.SemiBold)
     Slider(
       value = viewModel.graphSmoothing.toFloat(),
       onValueChange = { viewModel.updateGraphSmoothing(it.toInt()) },
@@ -190,7 +217,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text("Number of Positions: ${viewModel.positionCount}", fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.num_positions, viewModel.positionCount), fontWeight = FontWeight.SemiBold)
     Slider(
       value = viewModel.positionCount.toFloat(),
       onValueChange = { viewModel.updatePositionCount(it.toInt()) },
@@ -200,14 +227,14 @@ fun SettingsScreen(viewModel: AppViewModel) {
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text("Position Names:", fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.position_names), fontWeight = FontWeight.SemiBold)
     Spacer(modifier = Modifier.height(8.dp))
 
     for (i in 0 until viewModel.positionCount) {
       OutlinedTextField(
         value = viewModel.positionNames[i],
         onValueChange = { viewModel.updatePositionName(i, it) },
-        label = { Text("Position ${i + 1} Name") },
+        label = { Text(stringResource(R.string.position_name_label, i + 1)) },
         maxLines = 1,
         modifier =
           Modifier
@@ -221,7 +248,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
       onClick = { viewModel.resetToDefaults() },
       colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
     ) {
-      Text("Reset to Defaults")
+      Text(stringResource(R.string.reset_defaults))
     }
   }
 }

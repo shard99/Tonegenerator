@@ -5,7 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
+import androidx.core.os.LocaleListCompat
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -42,6 +45,17 @@ class MainActivity : ComponentActivity() {
               }
             },
         )
+
+      LaunchedEffect(viewModel.language) {
+        val languageTag =
+          when (viewModel.language) {
+            AppLanguage.SYSTEM -> ""
+            AppLanguage.ENGLISH -> "en"
+            AppLanguage.NORWEGIAN -> "nb"
+          }
+        val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags(languageTag)
+        AppCompatDelegate.setApplicationLocales(appLocale)
+      }
 
       val darkTheme =
         when (viewModel.themeMode) {

@@ -66,12 +66,14 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.audio.BleManager
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.components.FrequencyWheel
@@ -150,14 +152,14 @@ fun GeneratorScreen(
             .padding(16.dp)
             .padding(bottom = 32.dp),
       ) {
-        Text("Select Position to Store Value", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.select_position), fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(16.dp))
         for (i in 0 until viewModel.positionCount) {
           ListItem(
             headlineContent = { Text(viewModel.positionNames[i]) },
             supportingContent = {
               viewModel.currentSessionMeasurements[i]?.let {
-                Text("Stored: ${String.format(Locale.US, "%.1f", it)}")
+                Text(stringResource(R.string.stored_value, String.format(Locale.US, "%.1f", it)))
               }
             },
             modifier =
@@ -204,7 +206,7 @@ fun GeneratorScreen(
             .fillMaxWidth()
             .padding(horizontal = 24.dp),
       ) {
-        Text("Mic Level:", fontSize = 18.sp, color = Color.Gray)
+        Text(stringResource(R.string.mic_level), fontSize = 18.sp, color = Color.Gray)
         Spacer(modifier = Modifier.width(8.dp))
         LinearProgressIndicator(
           progress = { toneGenerator.measuredLevel.toFloat() },
@@ -231,7 +233,7 @@ fun GeneratorScreen(
         ) {
           Icon(
             imageVector = Icons.Default.Star,
-            contentDescription = "Save to position",
+            contentDescription = stringResource(R.string.save_to_position),
             tint = if (viewModel.isPlaying) GreenX else Color.LightGray,
             modifier = Modifier.size(36.dp),
           )
@@ -288,7 +290,7 @@ fun GeneratorScreen(
           ) {
             Icon(
               imageVector = if (viewModel.showLogs) Icons.AutoMirrored.Filled.List else Icons.Default.BarChart,
-              contentDescription = "Toggle View",
+              contentDescription = stringResource(R.string.toggle_view),
               modifier =
                 Modifier
                   .size(32.dp)
@@ -322,7 +324,7 @@ fun GeneratorScreen(
         modifier = Modifier.fillMaxWidth(),
       ) {
         Text(
-          "Phone",
+          stringResource(R.string.phone),
           fontWeight = if (!viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
         )
         Switch(
@@ -359,7 +361,7 @@ fun GeneratorScreen(
           modifier = Modifier.padding(horizontal = 8.dp),
         )
         Text(
-          "Remote",
+          stringResource(R.string.remote),
           fontWeight = if (viewModel.useRemoteGenerator) FontWeight.Bold else FontWeight.Normal,
         )
 
@@ -394,19 +396,23 @@ fun GeneratorScreen(
       if (showBleInfoDialog) {
         AlertDialog(
           onDismissRequest = { showBleInfoDialog = false },
-          title = { Text("Connection Status") },
+          title = { Text(stringResource(R.string.connection_status)) },
           text = {
             Column {
-              StatusInfoRow(Color.Gray, "Disconnected", "Not connected to any device.")
-              StatusInfoRow(Color.Yellow, "Connecting", "Searching for companion hardware.")
-              StatusInfoRow(Color.Blue, "Connected", "Connection established, syncing...")
-              StatusInfoRow(GreenX, "Synced", "Ready to generate remote tones.")
-              StatusInfoRow(Color.Red, "Error", "Connection failed or timed out.")
+              StatusInfoRow(
+                Color.Gray,
+                stringResource(R.string.disconnected),
+                stringResource(R.string.disconnected_desc),
+              )
+              StatusInfoRow(Color.Yellow, stringResource(R.string.connecting), stringResource(R.string.connecting_desc))
+              StatusInfoRow(Color.Blue, stringResource(R.string.connected), stringResource(R.string.connected_desc))
+              StatusInfoRow(GreenX, stringResource(R.string.synced), stringResource(R.string.synced_desc))
+              StatusInfoRow(Color.Red, stringResource(R.string.error), stringResource(R.string.error_desc))
             }
           },
           confirmButton = {
             TextButton(onClick = { showBleInfoDialog = false }) {
-              Text("OK")
+              Text(stringResource(R.string.ok))
             }
           },
         )
@@ -487,7 +493,12 @@ fun GeneratorScreen(
         }
       }
 
-      val channels = listOf("Left", "Both", "Right")
+      val channels =
+        listOf(
+          stringResource(R.string.left),
+          stringResource(R.string.both),
+          stringResource(R.string.right),
+        )
       SingleChoiceSegmentedButtonRow(
         modifier =
           Modifier
@@ -535,7 +546,7 @@ fun GeneratorScreen(
         },
         modifier = Modifier.size(110.dp),
       ) {
-        Text(if (viewModel.isPlaying) "STOP" else "PLAY")
+        Text(if (viewModel.isPlaying) stringResource(R.string.stop) else stringResource(R.string.play))
       }
     }
 

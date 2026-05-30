@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.launch
 
@@ -36,11 +38,11 @@ fun ResultsScreen(viewModel: AppViewModel) {
         .padding(16.dp),
     horizontalAlignment = Alignment.CenterHorizontally,
   ) {
-    Text("Results History", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+    Text(stringResource(R.string.results_history), fontSize = 24.sp, fontWeight = FontWeight.Bold)
     Spacer(modifier = Modifier.height(16.dp))
 
     if (viewModel.history.isEmpty()) {
-      Text("No results yet", color = Color.Gray)
+      Text(stringResource(R.string.no_results), color = Color.Gray)
     } else {
       viewModel.history.forEach { line ->
         Card(
@@ -71,7 +73,7 @@ fun ResultsScreen(viewModel: AppViewModel) {
         },
         modifier = Modifier.fillMaxWidth(),
       ) {
-        Text("Copy All to Clipboard")
+        Text(stringResource(R.string.copy_all))
       }
 
       Spacer(modifier = Modifier.height(8.dp))
@@ -80,7 +82,7 @@ fun ResultsScreen(viewModel: AppViewModel) {
         onClick = { viewModel.clearHistory() },
         modifier = Modifier.fillMaxWidth(),
       ) {
-        Text("Clear history")
+        Text(stringResource(R.string.clear_history))
       }
     }
   }

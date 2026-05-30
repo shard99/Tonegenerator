@@ -22,9 +22,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.ui.theme.GreenX
 import kotlin.math.PI
 import kotlin.math.abs
@@ -236,12 +238,12 @@ fun FrequencyWheel(
 
       Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-          text = "${value.roundToInt()} Hz",
+          text = "${value.roundToInt()} " + stringResource(R.string.hz),
           fontSize = (size.value / 6).sp,
           textAlign = TextAlign.Center,
         )
         Text(
-          text = "Vol: $volume%",
+          text = stringResource(R.string.vol_label, volume),
           fontSize = (size.value / 8).sp,
           color = Color.Gray,
           textAlign = TextAlign.Center,
