@@ -50,6 +50,12 @@ This document tracks architectural decisions and best practices to maintain code
   - Use `ClipData.newPlainText(label, text).toClipEntry()` to create the clip.
   - Always wrap calls in a coroutine scope (e.g., `scope.launch { ... }`).
 
+## Localization
+
+- **Supported Languages**: English (default), Norwegian (Bokmål).
+- **Implementation**: Uses `AppCompatDelegate.setApplicationLocales` for dynamic in-app switching.
+- **Resource Management**: All UI text must be defined in `strings.xml`. Avoid hardcoded strings in Composable functions.
+
 ## ViewModels
 
 - **Rule**: Keep ViewModels pure of UI-specific classes (like `Clipboard` or `Context`).

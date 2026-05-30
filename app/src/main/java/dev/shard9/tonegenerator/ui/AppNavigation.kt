@@ -29,11 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.toClipEntry
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.audio.ToneGenerator
 import dev.shard9.tonegenerator.ui.screens.AboutScreen
 import dev.shard9.tonegenerator.ui.screens.GeneratorScreen
@@ -56,10 +58,10 @@ fun AppNavigation(
 
   val drawerItems =
     listOf(
-      DrawerItem("Generator", "generator", Icons.Default.Menu),
-      DrawerItem("Results", "results", Icons.Default.History),
-      DrawerItem("Settings", "settings", Icons.Default.Settings),
-      DrawerItem("About", "about", Icons.Default.Info),
+      DrawerItem(stringResource(R.string.app_name), "generator", Icons.Default.Menu),
+      DrawerItem(stringResource(R.string.results_history), "results", Icons.Default.History),
+      DrawerItem(stringResource(R.string.settings), "settings", Icons.Default.Settings),
+      DrawerItem(stringResource(R.string.about), "about", Icons.Default.Info),
     )
 
   val clipboard = LocalClipboard.current
@@ -102,10 +104,10 @@ fun AppNavigation(
     Scaffold(
       topBar = {
         CenterAlignedTopAppBar(
-          title = { Text("LF Tonegen") },
+          title = { Text(stringResource(R.string.app_name)) },
           navigationIcon = {
             IconButton(onClick = { scope.launch { drawerState.open() } }) {
-              Icon(Icons.Default.Menu, contentDescription = "Menu")
+              Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.menu))
             }
           },
         )
