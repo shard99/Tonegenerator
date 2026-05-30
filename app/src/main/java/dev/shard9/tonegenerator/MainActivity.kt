@@ -2,9 +2,9 @@ package dev.shard9.tonegenerator
 
 import android.content.Context
 import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +23,7 @@ val Context.dataStore by preferencesDataStore(name = "settings")
 
 enum class ThemeMode { LIGHT, DARK, AUTO }
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
   private var toneGenerator: ToneGenerator? = null
   private var bleManager: BleManager? = null
 
@@ -54,7 +54,9 @@ class MainActivity : ComponentActivity() {
             AppLanguage.NORWEGIAN -> "nb"
           }
         val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags(languageTag)
-        AppCompatDelegate.setApplicationLocales(appLocale)
+        if (AppCompatDelegate.getApplicationLocales() != appLocale) {
+          AppCompatDelegate.setApplicationLocales(appLocale)
+        }
       }
 
       val darkTheme =

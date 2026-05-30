@@ -22,6 +22,7 @@
     <string name="error">Error</string>
     <string name="error_desc">Connection failed or timed out.</string>
     <string name="ok">OK</string>
+    <string name="menu">Menu</string>
     <string name="toggle_view">Toggle View</string>
     <string name="save_to_position">Save to position</string>
     <string name="hz">Hz</string>
@@ -43,9 +44,9 @@
     <string name="position_name_label">Position %d Name</string>
     <string name="reset_defaults">Reset to Defaults</string>
     <string name="language">Language</string>
-    <string name="lang_system">System</string>
+    <string name="lang_system">System default</string>
     <string name="lang_english">English</string>
-    <string name="lang_norwegian">Norwegian</string>
+    <string name="lang_norwegian">Norsk</string>
 
     <string name="about">About</string>
     <string name="developer">Developer: %s</string>
