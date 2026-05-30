@@ -6,10 +6,12 @@ nodes, and testing low-frequency performance.
 ## Core Features
 
 - **Dual-Mode Generation**: Toggle between high-fidelity local generation (on-device) and remote hardware generation via BLE.
-- **Hardware Companion Integration**: Seamlessly connect to the "LF Tonegen Companion" hardware for remote playback, useful for placing sources exactly where needed without physical cables.
+- **Hardware Companion Integration**: Seamlessly connect to the "LF Tonegen Companion" hardware for remote playback, supporting frequency, volume, and stereo channel synchronization.
 - **Logarithmic Frequency Control**: An intuitive circular wheel for frequency selection across a wide range (10Hz to 30,000Hz).
-- **Real-time Measurement**: Uses the Goertzel algorithm and a dynamic graph to analyze and visualize microphone levels at the target frequency.
-- **Throttled BLE Control**: Intelligent rate-limiting (4Hz) for Frequency and Volume commands ensures responsiveness while maintaining Bluetooth stability.
+- **Real-time Measurement**: Uses the Goertzel algorithm and a dynamic graph to analyze and visualize microphone levels at the target frequency in both Phone and Remote modes.
+- **Remote Console**: Access real-time logs directly from the companion hardware via a built-in terminal toggle.
+- **Throttled BLE Control**: Intelligent rate-limiting (4Hz) for Frequency, Volume, and Channel commands ensures responsiveness while maintaining Bluetooth stability.
+- **Multilingual Support**: Fully localized in English and Norwegian.
 - **Data Export**: Save measurements at up to 6 custom physical positions. Results are automatically formatted as CSV and copied to your clipboard.
 
 ## How to Use
@@ -27,7 +29,8 @@ nodes, and testing low-frequency performance.
 - **Phone Mode**: Uses `AudioTrack` with `PCM_FLOAT` encoding for ultra-low distortion sine wave generation.
 - **Remote Mode**: Communicates with hardware over Bluetooth Low Energy (BLE) using dedicated characteristics for Frequency, Volume, and Playback state.
 - **Logarithmic Scaling**: The selection wheel uses logarithmic mapping to provide finer control over sub-bass frequencies where room nodes are most critical.
-- **Pop-Free Playback**: Implements smooth fade-in and fade-out logic to prevent transducer pops.
+- **Pop-Free Playback**: Implements smooth 20ms fade-in/fade-out and channel switching logic to prevent transducer pops.
+- **Serialized BLE Protocol**: Uses a command queue and descriptor discovery to ensure reliable state synchronization with hardware.
 
 ## Installation
 
