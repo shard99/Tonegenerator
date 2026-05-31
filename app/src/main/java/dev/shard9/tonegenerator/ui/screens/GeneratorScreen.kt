@@ -86,6 +86,8 @@ import dev.shard9.tonegenerator.viewmodel.AppViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlin.math.log10
+import kotlin.math.pow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -151,9 +153,11 @@ fun GeneratorScreen(
     while (true) {
       val systemVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
       if (!viewModel.useRemoteGenerator) {
-        val percent = if (max > 0) ((systemVol.toFloat() / max) * 100).toInt() else 0
-        if (percent != viewModel.volume) {
-          viewModel.updateVolume(percent)
+        val ratio = if (max > 0) systemVol.toFloat() / max else 0f
+        // Map system volume (0-max) logarithmically to UI volume (0-100)
+        val uiVol = (100 * log10(1.0 + 9.0 * ratio.toDouble())).toInt()
+        if (uiVol != viewModel.volume) {
+          viewModel.updateVolume(uiVol)
         }
       }
       delay(500)
@@ -251,9 +255,11 @@ fun GeneratorScreen(
       viewModel.updateVolume(newVol)
       if (!viewModel.useRemoteGenerator) {
         val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        // Map UI volume (0-100) exponentially to system volume (0-max)
+        val ratio = (10.0.pow(newVol / 100.0) - 1.0) / 9.0
         audioManager.setStreamVolume(
           AudioManager.STREAM_MUSIC,
-          ((newVol / 100f) * max).toInt(),
+          (ratio * max).toInt(),
           0,
         )
       }

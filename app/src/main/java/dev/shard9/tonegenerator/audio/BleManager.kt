@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.util.UUID
+import kotlin.math.pow
 
 private const val TAG = "BleManager"
 private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -270,8 +271,9 @@ class BleManager(
   fun writeVolume(volumePercent: Int) {
     val char = volCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
-    // Map 0-100% to 0-32767
-    val amp = (volumePercent * 327.67f).toInt()
+    // Map 0-100% logarithmically to 0-32767
+    val ratio = (10.0.pow(volumePercent / 100.0) - 1.0) / 9.0
+    val amp = (ratio * 32767).toInt()
     val data = amp.toString().toByteArray()
     write(gatt, char, data)
   }
