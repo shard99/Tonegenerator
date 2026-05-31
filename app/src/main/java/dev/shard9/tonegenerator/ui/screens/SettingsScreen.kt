@@ -21,6 +21,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,16 +37,62 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.shard9.tonegenerator.AppLanguage
 import dev.shard9.tonegenerator.R
 import dev.shard9.tonegenerator.ThemeMode
+import dev.shard9.tonegenerator.ui.theme.LFTonegenTheme
 import dev.shard9.tonegenerator.viewmodel.AppViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: AppViewModel) {
+  SettingsContent(
+    themeMode = viewModel.themeMode,
+    language = viewModel.language,
+    allowDualChannel = viewModel.allowDualChannel,
+    minFreq = viewModel.minFreq,
+    maxFreq = viewModel.maxFreq,
+    graphDuration = viewModel.graphDuration,
+    graphSmoothing = viewModel.graphSmoothing,
+    positionCount = viewModel.positionCount,
+    positionNames = viewModel.positionNames,
+    onUpdateTheme = { viewModel.updateTheme(it) },
+    onUpdateLanguage = { viewModel.updateLanguage(it) },
+    onUpdateAllowDualChannel = { viewModel.updateAllowDualChannel(it) },
+    onUpdateFreqRange = { min, max -> viewModel.updateFreqRange(min, max) },
+    onUpdateGraphDuration = { viewModel.updateGraphDuration(it) },
+    onUpdateGraphSmoothing = { viewModel.updateGraphSmoothing(it) },
+    onUpdatePositionCount = { viewModel.updatePositionCount(it) },
+    onUpdatePositionName = { index, name -> viewModel.updatePositionName(index, name) },
+    onResetToDefaults = { viewModel.resetToDefaults() },
+  )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsContent(
+  themeMode: ThemeMode,
+  language: AppLanguage,
+  allowDualChannel: Boolean,
+  minFreq: Int,
+  maxFreq: Int,
+  graphDuration: Int,
+  graphSmoothing: Int,
+  positionCount: Int,
+  positionNames: List<String>,
+  onUpdateTheme: (ThemeMode) -> Unit,
+  onUpdateLanguage: (AppLanguage) -> Unit,
+  onUpdateAllowDualChannel: (Boolean) -> Unit,
+  onUpdateFreqRange: (Int, Int) -> Unit,
+  onUpdateGraphDuration: (Int) -> Unit,
+  onUpdateGraphSmoothing: (Int) -> Unit,
+  onUpdatePositionCount: (Int) -> Unit,
+  onUpdatePositionName: (Int, String) -> Unit,
+  onResetToDefaults: () -> Unit,
+) {
   val focusManager = LocalFocusManager.current
 
   Column(
@@ -74,8 +121,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
       themeModes.forEachIndexed { index, mode ->
         SegmentedButton(
           shape = SegmentedButtonDefaults.itemShape(index = index, count = themeModes.size),
-          onClick = { viewModel.updateTheme(mode) },
-          selected = viewModel.themeMode == mode,
+          onClick = { onUpdateTheme(mode) },
+          selected = themeMode == mode,
         ) {
           Text(themeLabels[index], fontSize = 12.sp)
         }
@@ -98,8 +145,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
       languages.forEachIndexed { index, lang ->
         SegmentedButton(
           shape = SegmentedButtonDefaults.itemShape(index = index, count = languages.size),
-          onClick = { viewModel.updateLanguage(lang) },
-          selected = viewModel.language == lang,
+          onClick = { onUpdateLanguage(lang) },
+          selected = language == lang,
         ) {
           Text(languageLabels[index], fontSize = 12.sp)
         }
@@ -107,25 +154,39 @@ fun SettingsScreen(viewModel: AppViewModel) {
     }
 
     Spacer(modifier = Modifier.height(24.dp))
+    Text(stringResource(R.string.allow_dual_channel), fontWeight = FontWeight.SemiBold)
+    Text(
+      stringResource(R.string.allow_dual_channel_desc),
+      style = MaterialTheme.typography.bodySmall,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.padding(horizontal = 8.dp),
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Switch(
+      checked = allowDualChannel,
+      onCheckedChange = { onUpdateAllowDualChannel(it) },
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
     Text(stringResource(R.string.freq_range_hz), fontWeight = FontWeight.SemiBold)
 
     // Local state for free editing
-    var minText by remember { mutableStateOf(viewModel.minFreq.toString()) }
-    var maxText by remember { mutableStateOf(viewModel.maxFreq.toString()) }
+    var minText by remember { mutableStateOf(minFreq.toString()) }
+    var maxText by remember { mutableStateOf(maxFreq.toString()) }
 
     // Sync local state when ViewModel updates (e.g. from reset)
-    LaunchedEffect(viewModel.minFreq, viewModel.maxFreq) {
-      if (!minText.all { it.isDigit() } || minText.toIntOrNull() != viewModel.minFreq) {
-        minText = viewModel.minFreq.toString()
+    LaunchedEffect(minFreq, maxFreq) {
+      if (!minText.all { it.isDigit() } || minText.toIntOrNull() != minFreq) {
+        minText = minFreq.toString()
       }
-      if (!maxText.all { it.isDigit() } || maxText.toIntOrNull() != viewModel.maxFreq) {
-        maxText = viewModel.maxFreq.toString()
+      if (!maxText.all { it.isDigit() } || maxText.toIntOrNull() != maxFreq) {
+        maxText = maxFreq.toString()
       }
     }
 
     fun finalizeFrequencyChanges() {
-      val minVal = minText.toIntOrNull() ?: viewModel.minFreq
-      val maxVal = maxText.toIntOrNull() ?: viewModel.maxFreq
+      val minVal = minText.toIntOrNull() ?: minFreq
+      val maxVal = maxText.toIntOrNull() ?: maxFreq
 
       // Clamp and ensure min < max
       var finalMin = minVal.coerceIn(10, 30000)
@@ -139,7 +200,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
       }
 
-      viewModel.updateFreqRange(finalMin, finalMax)
+      onUpdateFreqRange(finalMin, finalMax)
       minText = finalMin.toString()
       maxText = finalMax.toString()
     }
@@ -197,30 +258,30 @@ fun SettingsScreen(viewModel: AppViewModel) {
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text(stringResource(R.string.graph_duration, viewModel.graphDuration), fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.graph_duration, graphDuration), fontWeight = FontWeight.SemiBold)
     Slider(
-      value = viewModel.graphDuration.toFloat(),
-      onValueChange = { viewModel.updateGraphDuration(it.toInt()) },
+      value = graphDuration.toFloat(),
+      onValueChange = { onUpdateGraphDuration(it.toInt()) },
       valueRange = 2f..10f,
       steps = 7,
       modifier = Modifier.fillMaxWidth(),
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text(stringResource(R.string.graph_smoothing, viewModel.graphSmoothing), fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.graph_smoothing, graphSmoothing), fontWeight = FontWeight.SemiBold)
     Slider(
-      value = viewModel.graphSmoothing.toFloat(),
-      onValueChange = { viewModel.updateGraphSmoothing(it.toInt()) },
+      value = graphSmoothing.toFloat(),
+      onValueChange = { onUpdateGraphSmoothing(it.toInt()) },
       valueRange = 1f..10f,
       steps = 8,
       modifier = Modifier.fillMaxWidth(),
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text(stringResource(R.string.num_positions, viewModel.positionCount), fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.num_positions, positionCount), fontWeight = FontWeight.SemiBold)
     Slider(
-      value = viewModel.positionCount.toFloat(),
-      onValueChange = { viewModel.updatePositionCount(it.toInt()) },
+      value = positionCount.toFloat(),
+      onValueChange = { onUpdatePositionCount(it.toInt()) },
       valueRange = 1f..6f,
       steps = 4,
       modifier = Modifier.fillMaxWidth(),
@@ -230,10 +291,10 @@ fun SettingsScreen(viewModel: AppViewModel) {
     Text(stringResource(R.string.position_names), fontWeight = FontWeight.SemiBold)
     Spacer(modifier = Modifier.height(8.dp))
 
-    for (i in 0 until viewModel.positionCount) {
+    for (i in 0 until positionCount) {
       OutlinedTextField(
-        value = viewModel.positionNames[i],
-        onValueChange = { viewModel.updatePositionName(i, it) },
+        value = positionNames[i],
+        onValueChange = { onUpdatePositionName(i, it) },
         label = { Text(stringResource(R.string.position_name_label, i + 1)) },
         maxLines = 1,
         modifier =
@@ -245,10 +306,37 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
     Spacer(modifier = Modifier.height(32.dp))
     Button(
-      onClick = { viewModel.resetToDefaults() },
+      onClick = { onResetToDefaults() },
       colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
     ) {
       Text(stringResource(R.string.reset_defaults))
     }
+  }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun SettingsScreenPreview() {
+  LFTonegenTheme {
+    SettingsContent(
+      themeMode = ThemeMode.AUTO,
+      language = AppLanguage.SYSTEM,
+      allowDualChannel = false,
+      minFreq = 20,
+      maxFreq = 400,
+      graphDuration = 3,
+      graphSmoothing = 3,
+      positionCount = 3,
+      positionNames = List(6) { "Position ${it + 1}" },
+      onUpdateTheme = {},
+      onUpdateLanguage = {},
+      onUpdateAllowDualChannel = {},
+      onUpdateFreqRange = { _, _ -> },
+      onUpdateGraphDuration = {},
+      onUpdateGraphSmoothing = {},
+      onUpdatePositionCount = {},
+      onUpdatePositionName = { _, _ -> },
+      onResetToDefaults = {},
+    )
   }
 }

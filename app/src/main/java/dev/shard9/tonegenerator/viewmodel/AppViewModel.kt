@@ -43,6 +43,8 @@ class AppViewModel(
     private set
   var graphSmoothing by mutableIntStateOf(3)
     private set
+  var allowDualChannel by mutableStateOf(false)
+    private set
   var useRemoteGenerator by mutableStateOf(false)
     private set
   var volume by mutableIntStateOf(50)
@@ -97,6 +99,11 @@ class AppViewModel(
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
         volume = settings.volume
+        allowDualChannel = settings.allowDualChannel
+
+        if (!allowDualChannel && channelSelection != 2) {
+          updateChannelSelection(2)
+        }
 
         if (useRemoteGenerator && !bleManager.isConnected) {
           bleManager.startScanning()
@@ -282,6 +289,12 @@ class AppViewModel(
     volume = newVolume
     viewModelScope.launch {
       repository.updateVolume(newVolume)
+    }
+  }
+
+  fun updateAllowDualChannel(allow: Boolean) {
+    viewModelScope.launch {
+      repository.updateAllowDualChannel(allow)
     }
   }
 

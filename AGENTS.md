@@ -14,6 +14,7 @@ This document tracks architectural decisions and best practices to maintain code
   `defaultConfig.versionCode` by 1 and increase the patch number of `versionName` (e.g., 1.1.1 -> 1.1.2).
 - **Git Awareness**: Before incrementing, check if the version numbers have already been modified in uncommitted changes
   to prevent duplicate increments during the same development session.
+- **Changelog**: The `CHANGELOG.md` file should only be touched when tagging a new release.
 - **Code Style**: Always run `./gradlew ktlintFormat` before committing any Kotlin code changes to ensure adherence to
   the project's style guidelines.
 
@@ -66,3 +67,8 @@ This document tracks architectural decisions and best practices to maintain code
 
 - **Rule**: Frequency inputs in settings are restricted to integers between 10 and 30,000 Hz.
 - **Implementation**: Handled in `SettingsScreen` with `KeyboardType.Number` and `coerceIn`.
+
+## Channel Selection
+
+- **Rule**: If "Allow dual-channel output" is disabled in settings, the user is restricted to the "Right" channel.
+- **Implementation**: `GeneratorScreen` disables "Left" and "Both" buttons, and `AppViewModel` forces the selection to "Right" (index 2) when the setting is toggled off.

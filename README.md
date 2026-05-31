@@ -11,6 +11,7 @@ nodes, and testing low-frequency performance.
 - **Real-time Measurement**: Uses the Goertzel algorithm and a dynamic graph to analyze and visualize microphone levels at the target frequency in both Phone and Remote modes.
 - **Remote Console**: Access real-time logs directly from the companion hardware via a built-in terminal toggle.
 - **Throttled BLE Control**: Intelligent rate-limiting (4Hz) for Frequency, Volume, and Channel commands ensures responsiveness while maintaining Bluetooth stability.
+- **Dual-Channel Toggle**: Generator is restricted to right channel, this can be de-restricted in settings.
 - **Multilingual Support**: Fully localized in English and Norwegian.
 - **Data Export**: Save measurements at up to 6 custom physical positions. Results are automatically formatted as CSV and copied to your clipboard.
 

@@ -2,6 +2,7 @@ package dev.shard9.tonegenerator.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -22,6 +23,7 @@ class SettingsRepository(
   private val graphDurationKey = intPreferencesKey("graph_duration")
   private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
   private val volumeKey = intPreferencesKey("volume")
+  private val allowDualChannelKey = booleanPreferencesKey("allow_dual_channel")
   private val positionNamesPrefix = "position_name_"
 
   data class AppSettings(
@@ -33,6 +35,7 @@ class SettingsRepository(
     val graphDuration: Int,
     val graphSmoothing: Int,
     val volume: Int,
+    val allowDualChannel: Boolean,
     val positionNames: List<String>,
   )
 
@@ -64,6 +67,8 @@ class SettingsRepository(
       // Fallback for migration from localVolumeKey if volumeKey is missing
       val volume = prefs[volumeKey] ?: prefs[intPreferencesKey("local_volume")] ?: 50
 
+      val allowDualChannel = prefs[allowDualChannelKey] ?: false
+
       val positionNames =
         List(6) { i ->
           prefs[stringPreferencesKey(positionNamesPrefix + i)] ?: "Position ${i + 1}"
@@ -78,6 +83,7 @@ class SettingsRepository(
         graphDuration = graphDuration,
         graphSmoothing = graphSmoothing,
         volume = volume,
+        allowDualChannel = allowDualChannel,
         positionNames = positionNames,
       )
     }
@@ -121,6 +127,10 @@ class SettingsRepository(
 
   suspend fun updateVolume(volume: Int) {
     dataStore.edit { it[volumeKey] = volume }
+  }
+
+  suspend fun updateAllowDualChannel(allow: Boolean) {
+    dataStore.edit { it[allowDualChannelKey] = allow }
   }
 
   suspend fun resetToDefaults() {

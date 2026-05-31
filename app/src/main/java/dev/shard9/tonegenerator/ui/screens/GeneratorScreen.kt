@@ -173,6 +173,7 @@ fun GeneratorScreen(
     graphDuration = viewModel.graphDuration,
     bleStatus = viewModel.bleStatus,
     channelSelection = viewModel.channelSelection,
+    allowDualChannel = viewModel.allowDualChannel,
     positionCount = viewModel.positionCount,
     positionNames = viewModel.positionNames,
     currentSessionMeasurements = viewModel.currentSessionMeasurements,
@@ -282,6 +283,7 @@ fun GeneratorContent(
   graphDuration: Int,
   bleStatus: BleManager.Status,
   channelSelection: Int,
+  allowDualChannel: Boolean,
   positionCount: Int,
   positionNames: List<String>,
   currentSessionMeasurements: Map<Int, Double>,
@@ -545,7 +547,7 @@ fun GeneratorContent(
           size = 240.dp,
         )
 
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(20.dp))
 
         // Vertical Volume Slider
         Box(
@@ -608,10 +610,12 @@ fun GeneratorContent(
             .padding(horizontal = 16.dp),
       ) {
         channels.forEachIndexed { index, label ->
+          val enabled = allowDualChannel || index == 2
           SegmentedButton(
             shape = SegmentedButtonDefaults.itemShape(index = index, count = channels.size),
-            onClick = { onChannelChange(index) },
+            onClick = { if (enabled) onChannelChange(index) },
             selected = channelSelection == index,
+            enabled = enabled,
           ) {
             Text(label, fontSize = 12.sp)
           }
@@ -694,6 +698,7 @@ fun GeneratorScreenRemotePreview() {
       graphDuration = 10,
       bleStatus = BleManager.Status.SYNCED,
       channelSelection = 1,
+      allowDualChannel = true,
       positionCount = 3,
       positionNames = listOf("Pos 1", "Pos 2", "Pos 3"),
       currentSessionMeasurements = emptyMap(),
@@ -734,6 +739,7 @@ fun GeneratorScreenLogPreview() {
       graphDuration = 10,
       bleStatus = BleManager.Status.CONNECTED,
       channelSelection = 1,
+      allowDualChannel = true,
       positionCount = 3,
       positionNames = listOf("Pos 1", "Pos 2", "Pos 3"),
       currentSessionMeasurements = emptyMap(),

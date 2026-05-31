@@ -40,6 +40,8 @@
     <string name="graph_duration">Graph Window Duration: %ds</string>
     <string name="graph_smoothing">Graph Smoothing (Mean of X): %d</string>
     <string name="num_positions">Number of Positions: %d</string>
+    <string name="allow_dual_channel">Allow dual-channel output</string>
+    <string name="allow_dual_channel_desc">Enable selection of both/left channels. If off, only the right channel is used.</string>
     <string name="position_names">Position Names:</string>
     <string name="position_name_label">Position %d Name</string>
     <string name="reset_defaults">Reset to Defaults</string>

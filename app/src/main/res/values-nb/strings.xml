@@ -40,6 +40,8 @@
     <string name="graph_duration">Graf-vindu varighet: %ds</string>
     <string name="graph_smoothing">Graf-utjevning (snitt av X): %d</string>
     <string name="num_positions">Antall posisjoner: %d</string>
+    <string name="allow_dual_channel">Tillat to-kanals utgang</string>
+    <string name="allow_dual_channel_desc">Aktiver valg av begge/venstre kanaler. Hvis av, brukes kun høyre kanal.</string>
     <string name="position_names">Posisjonsnavn:</string>
     <string name="position_name_label">Navn på posisjon %d</string>
     <string name="reset_defaults">Tilbakestill til standard</string>
