@@ -93,7 +93,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("com.google.guava:guava:33.6.0-jre")
     implementation("org.json:json:20260522")
-    implementation("ch.qos.logback:logback-core:1.5.16")
+    implementation("ch.qos.logback:logback-core:1.5.25")
     implementation("org.apache.commons:commons-lang3:3.17.0")
   }
 }
