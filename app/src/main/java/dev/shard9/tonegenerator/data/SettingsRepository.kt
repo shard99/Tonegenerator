@@ -23,6 +23,7 @@ class SettingsRepository(
   private val graphDurationKey = intPreferencesKey("graph_duration")
   private val graphSmoothingKey = intPreferencesKey("graph_smoothing")
   private val volumeKey = intPreferencesKey("volume")
+  private val maxRemoteVolumeKey = intPreferencesKey("max_remote_volume")
   private val allowDualChannelKey = booleanPreferencesKey("allow_dual_channel")
   private val positionNamesPrefix = "position_name_"
 
@@ -35,6 +36,7 @@ class SettingsRepository(
     val graphDuration: Int,
     val graphSmoothing: Int,
     val volume: Int,
+    val maxRemoteVolume: Int,
     val allowDualChannel: Boolean,
     val positionNames: List<String>,
   )
@@ -67,6 +69,8 @@ class SettingsRepository(
       // Fallback for migration from localVolumeKey if volumeKey is missing
       val volume = prefs[volumeKey] ?: prefs[intPreferencesKey("local_volume")] ?: 50
 
+      val maxRemoteVolume = prefs[maxRemoteVolumeKey] ?: 50
+
       val allowDualChannel = prefs[allowDualChannelKey] ?: false
 
       val positionNames =
@@ -83,6 +87,7 @@ class SettingsRepository(
         graphDuration = graphDuration,
         graphSmoothing = graphSmoothing,
         volume = volume,
+        maxRemoteVolume = maxRemoteVolume,
         allowDualChannel = allowDualChannel,
         positionNames = positionNames,
       )
@@ -127,6 +132,10 @@ class SettingsRepository(
 
   suspend fun updateVolume(volume: Int) {
     dataStore.edit { it[volumeKey] = volume }
+  }
+
+  suspend fun updateMaxRemoteVolume(volume: Int) {
+    dataStore.edit { it[maxRemoteVolumeKey] = volume }
   }
 
   suspend fun updateAllowDualChannel(allow: Boolean) {
