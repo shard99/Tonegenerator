@@ -29,6 +29,9 @@
     <string name="vol_label">Vol: %d%%</string>
     <string name="volume_percent">Volum: %d%%</string>
 
+    <string name="max_remote_volume">Maks volum for fjernstyrt: %d%%</string>
+    <string name="max_remote_volume_desc">Begrenser den maksimale utgangseffekten til den fjernstyrte maskinvaren for å forhindre klipping eller for høy spenning.</string>
+
     <string name="settings">Innstillinger</string>
     <string name="theme_mode">Tema</string>
     <string name="theme_light">Lys</string>

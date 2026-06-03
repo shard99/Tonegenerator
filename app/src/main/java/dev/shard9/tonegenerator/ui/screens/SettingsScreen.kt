@@ -57,6 +57,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     maxFreq = viewModel.maxFreq,
     graphDuration = viewModel.graphDuration,
     graphSmoothing = viewModel.graphSmoothing,
+    maxRemoteVolume = viewModel.maxRemoteVolume,
     positionCount = viewModel.positionCount,
     positionNames = viewModel.positionNames,
     onUpdateTheme = { viewModel.updateTheme(it) },
@@ -65,6 +66,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     onUpdateFreqRange = { min, max -> viewModel.updateFreqRange(min, max) },
     onUpdateGraphDuration = { viewModel.updateGraphDuration(it) },
     onUpdateGraphSmoothing = { viewModel.updateGraphSmoothing(it) },
+    onUpdateMaxRemoteVolume = { viewModel.updateMaxRemoteVolume(it) },
     onUpdatePositionCount = { viewModel.updatePositionCount(it) },
     onUpdatePositionName = { index, name -> viewModel.updatePositionName(index, name) },
     onResetToDefaults = { viewModel.resetToDefaults() },
@@ -81,6 +83,7 @@ fun SettingsContent(
   maxFreq: Int,
   graphDuration: Int,
   graphSmoothing: Int,
+  maxRemoteVolume: Int,
   positionCount: Int,
   positionNames: List<String>,
   onUpdateTheme: (ThemeMode) -> Unit,
@@ -89,6 +92,7 @@ fun SettingsContent(
   onUpdateFreqRange: (Int, Int) -> Unit,
   onUpdateGraphDuration: (Int) -> Unit,
   onUpdateGraphSmoothing: (Int) -> Unit,
+  onUpdateMaxRemoteVolume: (Int) -> Unit,
   onUpdatePositionCount: (Int) -> Unit,
   onUpdatePositionName: (Int, String) -> Unit,
   onResetToDefaults: () -> Unit,
@@ -258,6 +262,22 @@ fun SettingsContent(
     }
 
     Spacer(modifier = Modifier.height(24.dp))
+    Text(stringResource(R.string.max_remote_volume, maxRemoteVolume), fontWeight = FontWeight.SemiBold)
+    Text(
+      stringResource(R.string.max_remote_volume_desc),
+      style = MaterialTheme.typography.bodySmall,
+      color = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.padding(horizontal = 8.dp),
+    )
+    Slider(
+      value = maxRemoteVolume.toFloat(),
+      onValueChange = { onUpdateMaxRemoteVolume(it.toInt()) },
+      valueRange = 10f..100f,
+      steps = 17, // (100 - 10) / 5 = 18 intervals? No, (100-10)/5 = 18, so 17 steps for 5% increments
+      modifier = Modifier.fillMaxWidth(),
+    )
+
+    Spacer(modifier = Modifier.height(24.dp))
     Text(stringResource(R.string.graph_duration, graphDuration), fontWeight = FontWeight.SemiBold)
     Slider(
       value = graphDuration.toFloat(),
@@ -326,6 +346,7 @@ fun SettingsScreenPreview() {
       maxFreq = 400,
       graphDuration = 3,
       graphSmoothing = 3,
+      maxRemoteVolume = 50,
       positionCount = 3,
       positionNames = List(6) { "Position ${it + 1}" },
       onUpdateTheme = {},
@@ -334,6 +355,7 @@ fun SettingsScreenPreview() {
       onUpdateFreqRange = { _, _ -> },
       onUpdateGraphDuration = {},
       onUpdateGraphSmoothing = {},
+      onUpdateMaxRemoteVolume = {},
       onUpdatePositionCount = {},
       onUpdatePositionName = { _, _ -> },
       onResetToDefaults = {},

@@ -49,6 +49,8 @@ class AppViewModel(
     private set
   var volume by mutableIntStateOf(50)
     private set
+  var maxRemoteVolume by mutableIntStateOf(50)
+    private set
   var channelSelection by mutableIntStateOf(1)
     private set
   var selectedFrequency by mutableFloatStateOf(100f)
@@ -99,6 +101,7 @@ class AppViewModel(
         graphDuration = settings.graphDuration
         graphSmoothing = settings.graphSmoothing
         volume = settings.volume
+        maxRemoteVolume = settings.maxRemoteVolume
         allowDualChannel = settings.allowDualChannel
 
         if (!allowDualChannel && channelSelection != 2) {
@@ -131,7 +134,8 @@ class AppViewModel(
         if (status == BleManager.Status.SYNCED && useRemoteGenerator) {
           // Push current values to the newly connected companion
           bleManager.writeFrequency(selectedFrequency)
-          bleManager.writeVolume(volume)
+          val scaledVol = (volume * (maxRemoteVolume / 100.0)).toInt()
+          bleManager.writeVolume(scaledVol)
           bleManager.writeChannel(channelSelection)
           bleManager.writePlayState(isPlaying)
         }
@@ -156,7 +160,21 @@ class AppViewModel(
         .conflate()
         .collect { vol ->
           if (useRemoteGenerator && bleManager.isConnected) {
-            bleManager.writeVolume(vol)
+            val scaledVol = (vol * (maxRemoteVolume / 100.0)).toInt()
+            bleManager.writeVolume(scaledVol)
+            delay(250)
+          }
+        }
+    }
+
+    // Update BLE volume when maxRemoteVolume changes
+    viewModelScope.launch {
+      snapshotFlow { maxRemoteVolume }
+        .conflate()
+        .collect { maxVol ->
+          if (useRemoteGenerator && bleManager.isConnected) {
+            val scaledVol = (volume * (maxVol / 100.0)).toInt()
+            bleManager.writeVolume(scaledVol)
             delay(250)
           }
         }
@@ -289,6 +307,13 @@ class AppViewModel(
     volume = newVolume
     viewModelScope.launch {
       repository.updateVolume(newVolume)
+    }
+  }
+
+  fun updateMaxRemoteVolume(newVolume: Int) {
+    maxRemoteVolume = newVolume
+    viewModelScope.launch {
+      repository.updateMaxRemoteVolume(newVolume)
     }
   }
 
