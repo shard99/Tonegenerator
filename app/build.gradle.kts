@@ -77,12 +77,12 @@ dependencies {
   constraints {
     implementation("org.bouncycastle:bcprov-jdk18on:1.84")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
-    implementation("io.netty:netty-codec-http2:4.2.14.Final")
-    implementation("io.netty:netty-codec-http:4.2.14.Final")
-    implementation("io.netty:netty-handler:4.2.14.Final")
-    implementation("io.netty:netty-codec:4.2.14.Final")
-    implementation("io.netty:netty-common:4.2.14.Final")
-    implementation("io.netty:netty-handler-proxy:4.2.14.Final")
+    implementation("io.netty:netty-codec-http2:4.2.15.Final")
+    implementation("io.netty:netty-codec-http:4.2.15.Final")
+    implementation("io.netty:netty-handler:4.2.15.Final")
+    implementation("io.netty:netty-codec:4.2.15.Final")
+    implementation("io.netty:netty-common:4.2.15.Final")
+    implementation("io.netty:netty-handler-proxy:4.2.15.Final")
     implementation("org.bitbucket.b_c:jose4j:0.9.6")
     implementation("org.jdom:jdom2:2.0.6.1")
     implementation("com.google.protobuf:protobuf-java:4.35.0")
@@ -93,7 +93,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("com.google.guava:guava:33.6.0-jre")
     implementation("org.json:json:20260522")
-    implementation("ch.qos.logback:logback-core:1.5.25")
+    implementation("ch.qos.logback:logback-core:1.5.35")
     implementation("org.apache.commons:commons-lang3:3.17.0")
   }
 }
