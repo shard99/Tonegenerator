@@ -222,6 +222,7 @@ class BleManager(
         }
       }
 
+      @Deprecated("Deprecin Java")
       @Suppress("DEPRECATION")
       override fun onCharacteristicChanged(
         gatt: BluetoothGatt,

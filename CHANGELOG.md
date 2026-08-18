@@ -31,3 +31,7 @@ This release introduces significant upgrades to connectivity, internationalizati
 ### Tooling & Build
 - Upgraded **Android Gradle Plugin (AGP)** to v9.2.1.
 - Updated project to use Kotlin compiler features compatible with newer target SDKs.
+
+## [2.1.5] - 2026-08-18
+
+Bump gradle to v9.3.1
