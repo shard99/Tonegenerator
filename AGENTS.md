@@ -36,11 +36,28 @@ This document tracks architectural decisions and best practices to maintain code
   - **Local Automation**: Run `./gradlew addKtlintCheckGitPreCommitHook` to ensure your code is checked before every
     commit.
 
+## Testing
+
+- **Rule**: Changes to business logic must come with unit tests that pin the behaviour down.
+- **Location**: Local JVM tests live in `app/src/test/java/...`. Instrumented tests, if ever needed, go in
+  `app/src/androidTest`.
+- **Commands**:
+  - `./gradlew test` runs every variant (currently 23 tests, run twice: debug and release).
+  - `./gradlew testDebugUnitTest` runs only the debug variant; use it while iterating.
+- **Structure**: ViewModels are tested against `RemoteGenerator` (implemented in production by `BleManager`) so
+  `FakeRemoteGenerator` can record writes without any Bluetooth stack. `SettingsRepository` is tested against
+  `FakePreferencesDataStore`, an in-memory `DataStore<Preferences>`.
+- **Rule**: Do not use `PreferenceDataStoreFactory` with a temp file in tests. Its second write fails on Windows
+  because okio's `atomicMove` cannot rename over the existing file, and DataStore misreports this as duplicated
+  instances for the same file. Use `FakePreferencesDataStore` instead.
+- **Rule**: `snapshotFlow` collectors do not observe state changes in JVM tests unless apply notifications are
+  dispatched. Flush with `Snapshot.sendApplyNotifications()` (see `FakeRemoteGenerator`).
+
 ## Continuous Integration (CI)
 
 - **Rule**: All merges to the `main` branch are gated by a GitHub Actions workflow.
-- **Checks**: The CI automatically runs `ktlintCheck` and a full build on every Push and Pull Request to `main`. If
-  formatting fails, the merge is blocked.
+- **Checks**: The CI automatically runs `ktlintCheck`, the unit test suite and a full build on every Push and Pull
+  Request to `main`. If formatting fails or a test fails, the merge is blocked.
 
 ## Clipboard Management
 
