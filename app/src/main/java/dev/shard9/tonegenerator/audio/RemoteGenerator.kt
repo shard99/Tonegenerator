@@ -19,7 +19,10 @@ interface RemoteGenerator {
 
   fun writeFrequency(freq: Float)
 
-  /** Sends a 0-100 volume percentage; the companion maps it through its own amplitude curve. */
+  /**
+   * Sets the output volume from a 0-100 percentage. Implementations convert it to the companion's
+   * amplitude range (see [volumePercentToAmplitude]) before transmitting.
+   */
   fun writeVolume(volumePercent: Int)
 
   fun writeChannel(index: Int)

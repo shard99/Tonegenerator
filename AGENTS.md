@@ -42,21 +42,21 @@ This document tracks architectural decisions and best practices to maintain code
 - **Location**: Local JVM tests live in `app/src/test/java/...`. Instrumented tests, if ever needed, go in
   `app/src/androidTest`.
 - **Commands**:
-  - `./gradlew test` runs every variant: 27 tests on debug, 23 on release.
+  - `./gradlew test` runs every variant. The debug variant also runs the Compose UI tests in `src/testDebug`,
+    so it always has more tests than release.
   - `./gradlew testDebugUnitTest` runs only the debug variant; use it while iterating.
   - `./gradlew jacocoDebugUnitTestReport` writes an HTML/XML coverage report to
     `app/build/reports/jacoco/jacocoDebugUnitTestReport/`.
-- **Coverage**: overall line coverage is currently ~25%, concentrated in the logic that matters:
-  `data` is 100%, `viewmodel` ~66%. UI components and `BleManager`/`ToneGenerator` are not covered yet, so
-  no coverage threshold is enforced — a global gate would only be noise at this level. Add one once the
-  UI and audio layers have tests.
+- **Coverage**: coverage is concentrated in the logic that matters (`data` and `viewmodel`). Most UI
+  components and `BleManager`/`ToneGenerator` are not covered yet, so no coverage threshold is enforced — a
+  global gate would only be noise at this level. Add one once the UI and audio layers have tests.
 - **Structure**: ViewModels are tested against `RemoteGenerator` (implemented in production by `BleManager`) so
   `FakeRemoteGenerator` can record writes without any Bluetooth stack. `SettingsRepository` is tested against
   `FakePreferencesDataStore`, an in-memory `DataStore<Preferences>`.
 - **Compose UI tests**: Stateless composables are tested with `createComposeRule()` under `RobolectricTestRunner`,
   so they run on the JVM without an emulator. `SettingsContent` is the entry point for this: it takes plain state
-  and callbacks, so no ViewModel is needed. SDK 35 is pinned via `@Config` because that is the newest platform
-  Robolectric ships an `android-all` jar for, while `targetSdk` is 36.
+  and callbacks, so no ViewModel is needed. Pin the Robolectric SDK via `@Config(sdk = [...])` to match
+  `targetSdk`, and keep the two in sync when `targetSdk` is raised.
 - **Rule**: Compose UI tests belong in `app/src/testDebug/java/...`, not `app/src/test/java/...`. `ui-test-manifest`
   is a `debugImplementation` dependency, so a UI test in the shared `src/test` set fails on the release variant with
   `Unable to resolve activity for Intent ... androidx.activity.ComponentActivity`.

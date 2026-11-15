@@ -19,14 +19,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Behaviour tests for the companion ceiling control added in `Config max-volume`.
+ * Behaviour tests for the max companion volume (ceiling) control in [SettingsContent].
  *
- * Runs on the JVM via Robolectric, so no emulator is needed. SDK 35 is pinned because it is the
- * highest platform Robolectric ships an `android-all` jar for; the screen has no
- * API-level-conditional behaviour.
+ * Runs on the JVM via Robolectric, so no emulator is needed. The SDK is pinned to match
+ * `targetSdk` so the tests run against the same platform behaviour the app targets.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [35])
+@Config(sdk = [36])
 class SettingsContentTest {
   @get:Rule
   val composeTestRule = createComposeRule()
