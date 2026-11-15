@@ -16,7 +16,7 @@ appcompat = "1.7.1"
 
 # Pinned versions for transitive dependencies with security advisories.
 bouncycastle = "1.87"
-netty = "4.2.14.Final"
+netty = "4.2.20.Final"
 jose4j = "0.9.7"
 jdom2 = "2.0.6.1"
 protobuf = "4.36.2"
