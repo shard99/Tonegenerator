@@ -54,8 +54,9 @@ This document tracks architectural decisions and best practices to maintain code
   `FakeRemoteGenerator` can record writes without any Bluetooth stack. `SettingsRepository` is tested against
   `FakePreferencesDataStore`, an in-memory `DataStore<Preferences>`.
 - **Compose UI tests**: Stateless composables are tested with `createComposeRule()` under `RobolectricTestRunner`,
-  so they run on the JVM without an emulator. `SettingsContent` is the entry point for this: it takes plain state
-  and callbacks, so no ViewModel is needed. Pin the Robolectric SDK via `@Config(sdk = [...])` to match
+  so they run on the JVM without an emulator. Import it from `androidx.compose.ui.test.junit4.v2`, not
+  `...junit4`: the v2 rule uses `StandardTestDispatcher`, so effects are queued rather than run eagerly, which
+  matches `runTest` semantics. Pin the Robolectric SDK via `@Config(sdk = [...])` to match
   `targetSdk`, and keep the two in sync when `targetSdk` is raised.
 - **Rule**: Compose UI tests belong in `app/src/testDebug/java/...`, not `app/src/test/java/...`. `ui-test-manifest`
   is a `debugImplementation` dependency, so a UI test in the shared `src/test` set fails on the release variant with

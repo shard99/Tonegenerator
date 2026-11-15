@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
 import dev.shard9.tonegenerator.AppLanguage
@@ -22,7 +22,9 @@ import org.robolectric.annotation.Config
  * Behaviour tests for the max companion volume (ceiling) control in [SettingsContent].
  *
  * Runs on the JVM via Robolectric, so no emulator is needed. The SDK is pinned to match
- * `targetSdk` so the tests run against the same platform behaviour the app targets.
+ * `targetSdk` so the tests run against the same platform behaviour the app targets. Uses the v2
+ * compose rule, whose `StandardTestDispatcher` queues effects instead of running them eagerly;
+ * the assertions below synchronise implicitly, so no manual clock control is needed.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
