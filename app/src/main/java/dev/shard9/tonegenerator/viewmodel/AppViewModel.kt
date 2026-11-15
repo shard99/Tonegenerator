@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import dev.shard9.tonegenerator.AppLanguage
 import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.audio.BleManager
+import dev.shard9.tonegenerator.audio.RemoteGenerator
 import dev.shard9.tonegenerator.data.SettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
@@ -25,7 +26,7 @@ import kotlin.math.roundToInt
 
 class AppViewModel(
   private val repository: SettingsRepository,
-  private val bleManager: BleManager,
+  private val bleManager: RemoteGenerator,
 ) : ViewModel() {
   var positionCount by mutableIntStateOf(3)
     private set

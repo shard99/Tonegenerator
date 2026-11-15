@@ -16,8 +16,8 @@ android {
     applicationId = "dev.shard9.tonegenerator"
     minSdk = 26
     targetSdk = 36
-    versionCode = 40
-    versionName = "2.1.7"
+    versionCode = 41
+    versionName = "2.1.8"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
@@ -73,6 +73,8 @@ dependencies {
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.compose.material3)
   testImplementation(libs.junit)
+  testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.datastore.preferences.core)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(platform(libs.androidx.compose.bom))
