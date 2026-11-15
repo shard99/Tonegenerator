@@ -16,8 +16,8 @@ android {
     applicationId = "dev.shard9.tonegenerator"
     minSdk = 26
     targetSdk = 36
-    versionCode = 39
-    versionName = "2.1.6"
+    versionCode = 40
+    versionName = "2.1.7"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
@@ -40,6 +40,13 @@ android {
   buildFeatures {
     compose = true
     buildConfig = true
+  }
+  testOptions {
+    unitTests {
+      // AGP 9.5 registers generate<Variant>ComposePreviewRunfiles eagerly and requires
+      // compiled Android resources for host tests; without this, task listing fails.
+      isIncludeAndroidResources = true
+    }
   }
 }
 
