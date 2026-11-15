@@ -1,5 +1,5 @@
 [versions]
-agp = "9.3.1"
+agp = "9.5.1"
 coreKtx = "1.18.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
@@ -13,6 +13,22 @@ composeBom = "2026.05.01"
 datastore = "1.2.1"
 ktlint = "14.2.0"
 appcompat = "1.7.1"
+
+# Pinned versions for transitive dependencies with security advisories.
+bouncycastle = "1.87"
+netty = "4.2.14.Final"
+jose4j = "0.9.7"
+jdom2 = "2.0.6.1"
+protobuf = "4.36.2"
+commonsIo = "2.22.0"
+commonsCompress = "1.28.0"
+httpclient = "4.5.14"
+gson = "2.15.0"
+kotlinxCoroutines = "1.11.0"
+guava = "33.8.0-jre"
+json = "20260814"
+logback = "1.6.7"
+commonsLang3 = "3.22.0"
 
 [libraries]
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -35,8 +51,29 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# Security constraints: upgrade transitive dependencies past known advisories.
+bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
+netty-codec-http2 = { group = "io.netty", name = "netty-codec-http2", version.ref = "netty" }
+netty-codec-http = { group = "io.netty", name = "netty-codec-http", version.ref = "netty" }
+netty-handler = { group = "io.netty", name = "netty-handler", version.ref = "netty" }
+netty-codec = { group = "io.netty", name = "netty-codec", version.ref = "netty" }
+netty-common = { group = "io.netty", name = "netty-common", version.ref = "netty" }
+netty-handler-proxy = { group = "io.netty", name = "netty-handler-proxy", version.ref = "netty" }
+jose4j = { group = "org.bitbucket.b_c", name = "jose4j", version.ref = "jose4j" }
+jdom2 = { group = "org.jdom", name = "jdom2", version.ref = "jdom2" }
+protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobuf" }
+commons-io = { group = "commons-io", name = "commons-io", version.ref = "commonsIo" }
+commons-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "commonsCompress" }
+httpclient = { group = "org.apache.httpcomponents", name = "httpclient", version.ref = "httpclient" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "kotlinxCoroutines" }
+guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
+json = { group = "org.json", name = "json", version.ref = "json" }
+logback-core = { group = "ch.qos.logback", name = "logback-core", version.ref = "logback" }
+commons-lang3 = { group = "org.apache.commons", name = "commons-lang3", version.ref = "commonsLang3" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
-

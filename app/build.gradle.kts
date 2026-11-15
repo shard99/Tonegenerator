@@ -16,8 +16,8 @@ android {
     applicationId = "dev.shard9.tonegenerator"
     minSdk = 26
     targetSdk = 36
-    versionCode = 38
-    versionName = "2.1.5"
+    versionCode = 39
+    versionName = "2.1.6"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
@@ -73,27 +73,28 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.tooling)
   debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-  // Dependency constraints to address high-severity Dependabot security alerts
+  // Dependency constraints to address high-severity security alerts on transitive dependencies.
+  // Versions are defined in gradle/libs.versions.toml.
   constraints {
-    implementation("org.bouncycastle:bcprov-jdk18on:1.84")
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
-    implementation("io.netty:netty-codec-http2:4.2.14.Final")
-    implementation("io.netty:netty-codec-http:4.2.14.Final")
-    implementation("io.netty:netty-handler:4.2.14.Final")
-    implementation("io.netty:netty-codec:4.2.14.Final")
-    implementation("io.netty:netty-common:4.2.14.Final")
-    implementation("io.netty:netty-handler-proxy:4.2.14.Final")
-    implementation("org.bitbucket.b_c:jose4j:0.9.6")
-    implementation("org.jdom:jdom2:2.0.6.1")
-    implementation("com.google.protobuf:protobuf-java:4.35.0")
-    implementation("commons-io:commons-io:2.22.0")
-    implementation("org.apache.commons:commons-compress:1.28.0")
-    implementation("org.apache.httpcomponents:httpclient:4.5.14")
-    implementation("com.google.code.gson:gson:2.14.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
-    implementation("com.google.guava:guava:33.6.0-jre")
-    implementation("org.json:json:20260522")
-    implementation("ch.qos.logback:logback-core:1.5.25")
-    implementation("org.apache.commons:commons-lang3:3.17.0")
+    implementation(libs.bouncycastle.bcprov)
+    implementation(libs.bouncycastle.bcpkix)
+    implementation(libs.netty.codec.http2)
+    implementation(libs.netty.codec.http)
+    implementation(libs.netty.handler)
+    implementation(libs.netty.codec)
+    implementation(libs.netty.common)
+    implementation(libs.netty.handler.proxy)
+    implementation(libs.jose4j)
+    implementation(libs.jdom2)
+    implementation(libs.protobuf.java)
+    implementation(libs.commons.io)
+    implementation(libs.commons.compress)
+    implementation(libs.httpclient)
+    implementation(libs.gson)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.guava)
+    implementation(libs.json)
+    implementation(libs.logback.core)
+    implementation(libs.commons.lang3)
   }
 }

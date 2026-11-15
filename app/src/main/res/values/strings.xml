@@ -27,7 +27,6 @@
     <string name="save_to_position">Save to position</string>
     <string name="hz">Hz</string>
     <string name="vol_label">Vol: %d%%</string>
-    <string name="volume_percent">Volume: %d%%</string>
 
     <string name="max_remote_volume">Max Companion Volume: %d%%</string>
     <string name="max_remote_volume_desc">Limits the maximum output power of the companion hardware to prevent clipping or excessive voltage.</string>

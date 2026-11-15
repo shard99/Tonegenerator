@@ -5,18 +5,18 @@ buildscript {
   }
   dependencies {
     constraints {
-      classpath("org.bouncycastle:bcprov-jdk18on:1.84")
-      classpath("org.bouncycastle:bcpkix-jdk18on:1.84")
+      classpath("org.bouncycastle:bcprov-jdk18on:1.87")
+      classpath("org.bouncycastle:bcpkix-jdk18on:1.87")
       classpath("io.netty:netty-codec-http2:4.2.14.Final")
       classpath("io.netty:netty-codec-http:4.2.14.Final")
       classpath("io.netty:netty-handler:4.2.14.Final")
       classpath("io.netty:netty-common:4.2.14.Final")
       classpath("io.netty:netty-codec:4.2.14.Final")
       classpath("io.netty:netty-handler-proxy:4.2.14.Final")
-      classpath("org.bitbucket.b_c:jose4j:0.9.6")
+      classpath("org.bitbucket.b_c:jose4j:0.9.7")
       classpath("org.jdom:jdom2:2.0.6.1")
-      classpath("ch.qos.logback:logback-core:1.5.25")
-      classpath("org.apache.commons:commons-lang3:3.17.0")
+      classpath("ch.qos.logback:logback-core:1.6.7")
+      classpath("org.apache.commons:commons-lang3:3.22.0")
     }
   }
 }
