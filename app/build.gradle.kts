@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -6,6 +9,7 @@ plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.compose)
   alias(libs.plugins.ktlint)
+  jacoco
 }
 
 android {
@@ -16,8 +20,8 @@ android {
     applicationId = "dev.shard9.tonegenerator"
     minSdk = 26
     targetSdk = 36
-    versionCode = 40
-    versionName = "2.1.7"
+    versionCode = 41
+    versionName = "2.1.8"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     val buildDate = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
@@ -58,6 +62,70 @@ ktlint {
   }
 }
 
+// See the comment in the root build file: the ktlint configurations do not inherit the dependency
+// constraints below, so they resolve logback 1.3.14 through ktlint-cli unless it is forced here.
+configurations.matching { it.name.startsWith("ktlint") }.configureEach {
+  resolutionStrategy {
+    force(
+      "ch.qos.logback:logback-classic:${libs.versions.logback.get()}",
+      "ch.qos.logback:logback-core:${libs.versions.logback.get()}",
+    )
+  }
+}
+
+jacoco {
+  toolVersion = libs.versions.jacoco.get()
+}
+
+// Robolectric loads classes without a location, so the agent must instrument those too.
+tasks.withType<Test>().configureEach {
+  extensions.configure<JacocoTaskExtension> {
+    isIncludeNoLocationClasses = true
+    excludes = listOf("jdk.internal.*")
+  }
+}
+
+// Coverage for the debug unit tests: ./gradlew jacocoDebugUnitTestReport
+// HTML lands in app/build/reports/jacoco/jacocoDebugUnitTestReport/html/index.html
+tasks.register<JacocoReport>("jacocoDebugUnitTestReport") {
+  group = "verification"
+  description = "Generates a coverage report for the debug unit tests."
+  dependsOn("testDebugUnitTest")
+
+  // AGP 9 compiles Kotlin into built_in_kotlinc instead of the historical tmp/kotlin-classes.
+  val kotlinClasses =
+    layout.buildDirectory.dir("intermediates/built_in_kotlinc/debug/compileDebugKotlin/classes")
+  val javaClasses =
+    layout.buildDirectory.dir("intermediates/javac/debug/compileDebugJavaWithJavac/classes")
+
+  doFirst {
+    val classesDir = kotlinClasses.get().asFile
+    check(classesDir.exists()) {
+      "No compiled Kotlin classes at $classesDir. If AGP moved its output, update jacocoDebugUnitTestReport."
+    }
+  }
+
+  classDirectories.setFrom(
+    files(kotlinClasses, javaClasses).asFileTree.matching {
+      exclude(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*ComposableSingletons*.*",
+      )
+    },
+  )
+  sourceDirectories.setFrom(files("src/main/java"))
+  executionData.setFrom(layout.buildDirectory.file("jacoco/testDebugUnitTest.exec"))
+
+  reports {
+    html.required.set(true)
+    xml.required.set(true)
+    csv.required.set(false)
+  }
+}
+
 dependencies {
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.core.ktx)
@@ -73,6 +141,13 @@ dependencies {
   implementation(libs.androidx.compose.ui.tooling.preview)
   implementation(libs.androidx.compose.material3)
   testImplementation(libs.junit)
+  testImplementation(libs.kotlinx.coroutines.test)
+  testImplementation(libs.datastore.preferences.core)
+  // Compose UI tests run under Robolectric and need the debug manifest (ui-test-manifest), which only
+  // exists for the debug variant. They therefore live in src/testDebug rather than src/test.
+  testDebugImplementation(libs.robolectric)
+  testDebugImplementation(platform(libs.androidx.compose.bom))
+  testDebugImplementation(libs.androidx.compose.ui.test.junit4)
   androidTestImplementation(libs.androidx.junit)
   androidTestImplementation(libs.androidx.espresso.core)
   androidTestImplementation(platform(libs.androidx.compose.bom))

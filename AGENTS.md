@@ -36,11 +36,45 @@ This document tracks architectural decisions and best practices to maintain code
   - **Local Automation**: Run `./gradlew addKtlintCheckGitPreCommitHook` to ensure your code is checked before every
     commit.
 
+## Testing
+
+- **Rule**: Changes to business logic must come with unit tests that pin the behaviour down.
+- **Location**: Local JVM tests live in `app/src/test/java/...`. Instrumented tests, if ever needed, go in
+  `app/src/androidTest`.
+- **Commands**:
+  - `./gradlew test` runs every variant. The debug variant also runs the Compose UI tests in `src/testDebug`,
+    so it always has more tests than release.
+  - `./gradlew testDebugUnitTest` runs only the debug variant; use it while iterating.
+  - `./gradlew jacocoDebugUnitTestReport` writes an HTML/XML coverage report to
+    `app/build/reports/jacoco/jacocoDebugUnitTestReport/`.
+- **Coverage**: coverage is concentrated in the logic that matters (`data` and `viewmodel`). Most UI
+  components and `BleManager`/`ToneGenerator` are not covered yet, so no coverage threshold is enforced — a
+  global gate would only be noise at this level. Add one once the UI and audio layers have tests.
+- **Structure**: ViewModels are tested against `RemoteGenerator` (implemented in production by `BleManager`) so
+  `FakeRemoteGenerator` can record writes without any Bluetooth stack. `SettingsRepository` is tested against
+  `FakePreferencesDataStore`, an in-memory `DataStore<Preferences>`.
+- **Compose UI tests**: Stateless composables are tested with `createComposeRule()` under `RobolectricTestRunner`,
+  so they run on the JVM without an emulator. Import it from `androidx.compose.ui.test.junit4.v2`, not
+  `...junit4`: the v2 rule uses `StandardTestDispatcher`, so effects are queued rather than run eagerly, which
+  matches `runTest` semantics. Pin the Robolectric SDK via `@Config(sdk = [...])` to match
+  `targetSdk`, and keep the two in sync when `targetSdk` is raised.
+- **Rule**: Compose UI tests belong in `app/src/testDebug/java/...`, not `app/src/test/java/...`. `ui-test-manifest`
+  is a `debugImplementation` dependency, so a UI test in the shared `src/test` set fails on the release variant with
+  `Unable to resolve activity for Intent ... androidx.activity.ComponentActivity`.
+- **Rule**: Prefer semantic matchers over `testTag`. Sliders are identified by their unique
+  `ProgressBarRangeInfo` range rather than a tag, so production code carries no test-only identifiers.
+- **Rule**: Do not use `PreferenceDataStoreFactory` with a temp file in tests. Its second write fails on Windows
+  because okio's `atomicMove` cannot rename over the existing file, and DataStore misreports this as duplicated
+  instances for the same file. Use `FakePreferencesDataStore` instead.
+- **Rule**: `snapshotFlow` collectors do not observe state changes in JVM tests unless apply notifications are
+  dispatched. Flush with `Snapshot.sendApplyNotifications()` (see `FakeRemoteGenerator`).
+
 ## Continuous Integration (CI)
 
 - **Rule**: All merges to the `main` branch are gated by a GitHub Actions workflow.
-- **Checks**: The CI automatically runs `ktlintCheck` and a full build on every Push and Pull Request to `main`. If
-  formatting fails, the merge is blocked.
+- **Checks**: The CI automatically runs `ktlintCheck`, the unit test suite, the JaCoCo coverage report and a full
+  build on every Push and Pull Request to `main`. If formatting fails, a test fails, or the coverage task can no
+  longer find the compiled classes, the merge is blocked.
 
 ## Clipboard Management
 

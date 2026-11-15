@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import java.util.UUID
-import kotlin.math.pow
 
 private const val TAG = "BleManager"
 private val SERVICE_UUID = UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -36,13 +35,13 @@ private val CLIENT_CONFIG_UUID = UUID.fromString("00002902-0000-1000-8000-00805f
 @SuppressLint("MissingPermission")
 class BleManager(
   private val context: Context,
-) {
+) : RemoteGenerator {
   enum class Status { DISCONNECTED, CONNECTING, CONNECTED, SYNCED, ERROR }
 
-  var status by mutableStateOf(Status.DISCONNECTED)
+  override var status by mutableStateOf(Status.DISCONNECTED)
     private set
 
-  var onLogReceived: ((String) -> Unit)? = null
+  override var onLogReceived: ((String) -> Unit)? = null
 
   private val bluetoothAdapter: BluetoothAdapter? by lazy {
     val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -56,7 +55,7 @@ class BleManager(
   private var chanCharacteristic: BluetoothGattCharacteristic? = null
   private var logCharacteristic: BluetoothGattCharacteristic? = null
 
-  var isConnected = false
+  override var isConnected = false
     private set
 
   private var isScanning = false
@@ -70,7 +69,7 @@ class BleManager(
       }
     }
 
-  fun startScanning() {
+  override fun startScanning() {
     if (bluetoothAdapter == null || !(bluetoothAdapter!!.isEnabled)) {
       Log.e(TAG, "Bluetooth not enabled or adapter null")
       status = Status.ERROR
@@ -262,31 +261,28 @@ class BleManager(
       }
     }
 
-  fun writeFrequency(freq: Float) {
+  override fun writeFrequency(freq: Float) {
     val char = freqCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
     val data = freq.toString().toByteArray()
     write(gatt, char, data)
   }
 
-  fun writeVolume(volumePercent: Int) {
+  override fun writeVolume(volumePercent: Int) {
     val char = volCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
-    // Map 0-100% logarithmically to 0-32767
-    val ratio = (10.0.pow(volumePercent / 100.0) - 1.0) / 9.0
-    val amp = (ratio * 32767).toInt()
-    val data = amp.toString().toByteArray()
+    val data = volumePercentToAmplitude(volumePercent).toString().toByteArray()
     write(gatt, char, data)
   }
 
-  fun writePlayState(playing: Boolean) {
+  override fun writePlayState(playing: Boolean) {
     val char = playCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
     val data = (if (playing) "1" else "0").toByteArray()
     write(gatt, char, data)
   }
 
-  fun writeChannel(index: Int) {
+  override fun writeChannel(index: Int) {
     val char = chanCharacteristic ?: return
     val gatt = bluetoothGatt ?: return
     val data = index.toString().toByteArray()
@@ -309,7 +305,7 @@ class BleManager(
     }
   }
 
-  fun disconnect() {
+  override fun disconnect() {
     stopScanning()
     bluetoothGatt?.let { gatt ->
       Log.d(TAG, "Closing GATT connection...")

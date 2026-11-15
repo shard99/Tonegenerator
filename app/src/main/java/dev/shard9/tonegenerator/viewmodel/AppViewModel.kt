@@ -14,6 +14,7 @@ import androidx.lifecycle.viewModelScope
 import dev.shard9.tonegenerator.AppLanguage
 import dev.shard9.tonegenerator.ThemeMode
 import dev.shard9.tonegenerator.audio.BleManager
+import dev.shard9.tonegenerator.audio.RemoteGenerator
 import dev.shard9.tonegenerator.data.SettingsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
@@ -25,7 +26,7 @@ import kotlin.math.roundToInt
 
 class AppViewModel(
   private val repository: SettingsRepository,
-  private val bleManager: BleManager,
+  private val remoteGenerator: RemoteGenerator,
 ) : ViewModel() {
   var positionCount by mutableIntStateOf(3)
     private set
@@ -61,7 +62,7 @@ class AppViewModel(
     private set
   var bleLogs = mutableStateListOf<String>()
     private set
-  val bleStatus get() = bleManager.status
+  val bleStatus get() = remoteGenerator.status
 
   var currentSessionMeasurements = mutableStateMapOf<Int, Double>()
     private set
@@ -82,7 +83,7 @@ class AppViewModel(
   private val logTimestampFormat = SimpleDateFormat("HH:mm:ss.SS", Locale.US)
 
   init {
-    bleManager.onLogReceived = { msg ->
+    remoteGenerator.onLogReceived = { msg ->
       val timestamp = logTimestampFormat.format(Date())
       bleLogs.add("$timestamp: $msg")
       while (bleLogs.size > 20) {
@@ -108,8 +109,8 @@ class AppViewModel(
           updateChannelSelection(2)
         }
 
-        if (useRemoteGenerator && !bleManager.isConnected) {
-          bleManager.startScanning()
+        if (useRemoteGenerator && !remoteGenerator.isConnected) {
+          remoteGenerator.startScanning()
         }
 
         // Prune graph data if duration changed
@@ -130,14 +131,14 @@ class AppViewModel(
       }
     }
     viewModelScope.launch {
-      snapshotFlow { bleManager.status }.collect { status ->
+      snapshotFlow { remoteGenerator.status }.collect { status ->
         if (status == BleManager.Status.SYNCED && useRemoteGenerator) {
           // Push current values to the newly connected companion
-          bleManager.writeFrequency(selectedFrequency)
+          remoteGenerator.writeFrequency(selectedFrequency)
           val scaledVol = (volume * (maxRemoteVolume / 100.0)).toInt()
-          bleManager.writeVolume(scaledVol)
-          bleManager.writeChannel(channelSelection)
-          bleManager.writePlayState(isPlaying)
+          remoteGenerator.writeVolume(scaledVol)
+          remoteGenerator.writeChannel(channelSelection)
+          remoteGenerator.writePlayState(isPlaying)
         }
       }
     }
@@ -147,8 +148,8 @@ class AppViewModel(
       snapshotFlow { selectedFrequency }
         .conflate()
         .collect { freq ->
-          if (useRemoteGenerator && bleManager.isConnected) {
-            bleManager.writeFrequency(freq)
+          if (useRemoteGenerator && remoteGenerator.isConnected) {
+            remoteGenerator.writeFrequency(freq)
             delay(250)
           }
         }
@@ -159,9 +160,9 @@ class AppViewModel(
       snapshotFlow { volume }
         .conflate()
         .collect { vol ->
-          if (useRemoteGenerator && bleManager.isConnected) {
+          if (useRemoteGenerator && remoteGenerator.isConnected) {
             val scaledVol = (vol * (maxRemoteVolume / 100.0)).toInt()
-            bleManager.writeVolume(scaledVol)
+            remoteGenerator.writeVolume(scaledVol)
             delay(250)
           }
         }
@@ -172,9 +173,9 @@ class AppViewModel(
       snapshotFlow { maxRemoteVolume }
         .conflate()
         .collect { maxVol ->
-          if (useRemoteGenerator && bleManager.isConnected) {
+          if (useRemoteGenerator && remoteGenerator.isConnected) {
             val scaledVol = (volume * (maxVol / 100.0)).toInt()
-            bleManager.writeVolume(scaledVol)
+            remoteGenerator.writeVolume(scaledVol)
             delay(250)
           }
         }
@@ -185,8 +186,8 @@ class AppViewModel(
       snapshotFlow { channelSelection }
         .conflate()
         .collect { chan ->
-          if (useRemoteGenerator && bleManager.isConnected) {
-            bleManager.writeChannel(chan)
+          if (useRemoteGenerator && remoteGenerator.isConnected) {
+            remoteGenerator.writeChannel(chan)
             delay(250)
           }
         }
@@ -196,8 +197,8 @@ class AppViewModel(
     viewModelScope.launch {
       snapshotFlow { isPlaying }
         .collect { playing ->
-          if (useRemoteGenerator && bleManager.isConnected) {
-            bleManager.writePlayState(playing)
+          if (useRemoteGenerator && remoteGenerator.isConnected) {
+            remoteGenerator.writePlayState(playing)
           }
         }
     }
@@ -283,8 +284,8 @@ class AppViewModel(
   fun updateUseRemoteGenerator(useRemote: Boolean) {
     viewModelScope.launch {
       // 1. If we were using remote, ensure it stops immediately
-      if (useRemoteGenerator && !useRemote && bleManager.status == BleManager.Status.SYNCED) {
-        bleManager.writePlayState(false)
+      if (useRemoteGenerator && !useRemote && remoteGenerator.status == BleManager.Status.SYNCED) {
+        remoteGenerator.writePlayState(false)
         delay(100)
       }
 
@@ -296,9 +297,9 @@ class AppViewModel(
       if (useRemote) {
         // Short delay to let Bluetooth hardware settle and companion start advertising
         delay(500)
-        bleManager.startScanning()
+        remoteGenerator.startScanning()
       } else {
-        bleManager.disconnect()
+        remoteGenerator.disconnect()
       }
     }
   }
