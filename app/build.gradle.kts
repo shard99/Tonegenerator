@@ -62,6 +62,17 @@ ktlint {
   }
 }
 
+// See the comment in the root build file: the ktlint configurations do not inherit the dependency
+// constraints below, so they resolve logback 1.3.14 through ktlint-cli unless it is forced here.
+configurations.matching { it.name.startsWith("ktlint") }.configureEach {
+  resolutionStrategy {
+    force(
+      "ch.qos.logback:logback-classic:${libs.versions.logback.get()}",
+      "ch.qos.logback:logback-core:${libs.versions.logback.get()}",
+    )
+  }
+}
+
 jacoco {
   toolVersion = libs.versions.jacoco.get()
 }
