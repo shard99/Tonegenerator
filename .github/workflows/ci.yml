@@ -32,5 +32,9 @@ jobs:
       - name: Run unit tests
         run: ./gradlew test
 
+      # Also fails loudly if AGP moves the compiled-class output that the report reads from.
+      - name: Generate coverage report
+        run: ./gradlew jacocoDebugUnitTestReport
+
       - name: Build with Gradle
         run: ./gradlew assembleDebug

@@ -42,11 +42,26 @@ This document tracks architectural decisions and best practices to maintain code
 - **Location**: Local JVM tests live in `app/src/test/java/...`. Instrumented tests, if ever needed, go in
   `app/src/androidTest`.
 - **Commands**:
-  - `./gradlew test` runs every variant (currently 23 tests, run twice: debug and release).
+  - `./gradlew test` runs every variant: 27 tests on debug, 23 on release.
   - `./gradlew testDebugUnitTest` runs only the debug variant; use it while iterating.
+  - `./gradlew jacocoDebugUnitTestReport` writes an HTML/XML coverage report to
+    `app/build/reports/jacoco/jacocoDebugUnitTestReport/`.
+- **Coverage**: overall line coverage is currently ~25%, concentrated in the logic that matters:
+  `data` is 100%, `viewmodel` ~66%. UI components and `BleManager`/`ToneGenerator` are not covered yet, so
+  no coverage threshold is enforced — a global gate would only be noise at this level. Add one once the
+  UI and audio layers have tests.
 - **Structure**: ViewModels are tested against `RemoteGenerator` (implemented in production by `BleManager`) so
   `FakeRemoteGenerator` can record writes without any Bluetooth stack. `SettingsRepository` is tested against
   `FakePreferencesDataStore`, an in-memory `DataStore<Preferences>`.
+- **Compose UI tests**: Stateless composables are tested with `createComposeRule()` under `RobolectricTestRunner`,
+  so they run on the JVM without an emulator. `SettingsContent` is the entry point for this: it takes plain state
+  and callbacks, so no ViewModel is needed. SDK 35 is pinned via `@Config` because that is the newest platform
+  Robolectric ships an `android-all` jar for, while `targetSdk` is 36.
+- **Rule**: Compose UI tests belong in `app/src/testDebug/java/...`, not `app/src/test/java/...`. `ui-test-manifest`
+  is a `debugImplementation` dependency, so a UI test in the shared `src/test` set fails on the release variant with
+  `Unable to resolve activity for Intent ... androidx.activity.ComponentActivity`.
+- **Rule**: Prefer semantic matchers over `testTag`. Sliders are identified by their unique
+  `ProgressBarRangeInfo` range rather than a tag, so production code carries no test-only identifiers.
 - **Rule**: Do not use `PreferenceDataStoreFactory` with a temp file in tests. Its second write fails on Windows
   because okio's `atomicMove` cannot rename over the existing file, and DataStore misreports this as duplicated
   instances for the same file. Use `FakePreferencesDataStore` instead.
@@ -56,8 +71,9 @@ This document tracks architectural decisions and best practices to maintain code
 ## Continuous Integration (CI)
 
 - **Rule**: All merges to the `main` branch are gated by a GitHub Actions workflow.
-- **Checks**: The CI automatically runs `ktlintCheck`, the unit test suite and a full build on every Push and Pull
-  Request to `main`. If formatting fails or a test fails, the merge is blocked.
+- **Checks**: The CI automatically runs `ktlintCheck`, the unit test suite, the JaCoCo coverage report and a full
+  build on every Push and Pull Request to `main`. If formatting fails, a test fails, or the coverage task can no
+  longer find the compiled classes, the merge is blocked.
 
 ## Clipboard Management
 
